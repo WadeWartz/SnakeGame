@@ -1,0 +1,19 @@
+﻿  game.cpp
+  gfx.cpp
+C:\Users\nguye\source\repos\snake_sfml\snake_sfml\gfx.cpp(30,61): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+C:\Users\nguye\source\repos\snake_sfml\snake_sfml\gfx.cpp(30,61): warning C4244:         with
+C:\Users\nguye\source\repos\snake_sfml\snake_sfml\gfx.cpp(30,61): warning C4244:         [
+C:\Users\nguye\source\repos\snake_sfml\snake_sfml\gfx.cpp(30,61): warning C4244:             T=float
+C:\Users\nguye\source\repos\snake_sfml\snake_sfml\gfx.cpp(30,61): warning C4244:         ]
+C:\Users\nguye\source\repos\snake_sfml\snake_sfml\gfx.cpp(30,39): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+C:\Users\nguye\source\repos\snake_sfml\snake_sfml\gfx.cpp(30,39): warning C4244:         with
+C:\Users\nguye\source\repos\snake_sfml\snake_sfml\gfx.cpp(30,39): warning C4244:         [
+C:\Users\nguye\source\repos\snake_sfml\snake_sfml\gfx.cpp(30,39): warning C4244:             T=float
+C:\Users\nguye\source\repos\snake_sfml\snake_sfml\gfx.cpp(30,39): warning C4244:         ]
+C:\Users\nguye\source\repos\snake_sfml\snake_sfml\gfx.cpp(328,18): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+C:\Users\nguye\source\repos\snake_sfml\snake_sfml\gfx.cpp(334,18): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+  main.cpp
+  Generating Code...
+  snake_sfml.vcxproj -> C:\Users\nguye\source\repos\snake_sfml\x64\Debug\snake_sfml.exe
+  0 File(s) copied
+  0 File(s) copied

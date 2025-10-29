@@ -1,0 +1,118 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\nguye\\source\\repos\\snake_sfml\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{D3DC35D8-2795-4B93-8CC7-CE975F649D5F}|snake_sfml\\snake_sfml.vcxproj|C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\gfx.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{D3DC35D8-2795-4B93-8CC7-CE975F649D5F}|snake_sfml\\snake_sfml.vcxproj|solutionrelative:snake_sfml\\gfx.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D3DC35D8-2795-4B93-8CC7-CE975F649D5F}|snake_sfml\\snake_sfml.vcxproj|C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\gfx.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{D3DC35D8-2795-4B93-8CC7-CE975F649D5F}|snake_sfml\\snake_sfml.vcxproj|solutionrelative:snake_sfml\\gfx.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D3DC35D8-2795-4B93-8CC7-CE975F649D5F}|snake_sfml\\snake_sfml.vcxproj|C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\game.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{D3DC35D8-2795-4B93-8CC7-CE975F649D5F}|snake_sfml\\snake_sfml.vcxproj|solutionrelative:snake_sfml\\game.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D3DC35D8-2795-4B93-8CC7-CE975F649D5F}|snake_sfml\\snake_sfml.vcxproj|C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\game.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{D3DC35D8-2795-4B93-8CC7-CE975F649D5F}|snake_sfml\\snake_sfml.vcxproj|solutionrelative:snake_sfml\\game.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D3DC35D8-2795-4B93-8CC7-CE975F649D5F}|snake_sfml\\snake_sfml.vcxproj|C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\config.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{D3DC35D8-2795-4B93-8CC7-CE975F649D5F}|snake_sfml\\snake_sfml.vcxproj|solutionrelative:snake_sfml\\config.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D3DC35D8-2795-4B93-8CC7-CE975F649D5F}|snake_sfml\\snake_sfml.vcxproj|C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{D3DC35D8-2795-4B93-8CC7-CE975F649D5F}|snake_sfml\\snake_sfml.vcxproj|solutionrelative:snake_sfml\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "gfx.h",
+              "DocumentMoniker": "C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\gfx.h",
+              "RelativeDocumentMoniker": "snake_sfml\\gfx.h",
+              "ToolTip": "C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\gfx.h",
+              "RelativeToolTip": "snake_sfml\\gfx.h",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAAACMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-10-15T16:28:08.149Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "gfx.cpp",
+              "DocumentMoniker": "C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\gfx.cpp",
+              "RelativeDocumentMoniker": "snake_sfml\\gfx.cpp",
+              "ToolTip": "C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\gfx.cpp",
+              "RelativeToolTip": "snake_sfml\\gfx.cpp",
+              "ViewState": "AgIAAJcCAAAAAAAAAAAAwMUCAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-10-15T16:27:06.931Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "game.h",
+              "DocumentMoniker": "C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\game.h",
+              "RelativeDocumentMoniker": "snake_sfml\\game.h",
+              "ToolTip": "C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\game.h",
+              "RelativeToolTip": "snake_sfml\\game.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAC4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-10-15T16:27:52.447Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "config.h",
+              "DocumentMoniker": "C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\config.h",
+              "RelativeDocumentMoniker": "snake_sfml\\config.h",
+              "ToolTip": "C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\config.h",
+              "RelativeToolTip": "snake_sfml\\config.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-10-15T16:27:34.934Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "game.cpp",
+              "DocumentMoniker": "C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\game.cpp",
+              "RelativeDocumentMoniker": "snake_sfml\\game.cpp",
+              "ToolTip": "C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\game.cpp",
+              "RelativeToolTip": "snake_sfml\\game.cpp",
+              "ViewState": "AgIAANIAAAAAAAAAAAAAAEoAAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-10-15T16:26:48.519Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "main.cpp",
+              "DocumentMoniker": "C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\main.cpp",
+              "RelativeDocumentMoniker": "snake_sfml\\main.cpp",
+              "ToolTip": "C:\\Users\\nguye\\source\\repos\\snake_sfml\\snake_sfml\\main.cpp",
+              "RelativeToolTip": "snake_sfml\\main.cpp",
+              "ViewState": "AgIAADYAAAAAAAAAAAAAABIAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-10-14T17:54:16.487Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
