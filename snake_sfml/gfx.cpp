@@ -1,4 +1,4 @@
-﻿#include "gfx.h"
+#include "gfx.h"
 #include "config.h"
 #include "game.h"
 #include <string>
@@ -15,6 +15,11 @@ static sf::CircleShape    gFoodShape;
 static sf::RectangleShape gObsRect;
 
 static sf::CircleShape    gPortalAShape, gPortalBShape;
+
+// === THÊM TEXTURE VÀ SPRITE CHO BACKGROUND ===
+static sf::Texture gMainMenuBgTexture;
+static sf::Sprite gMainMenuBgSprite;
+static bool gMainMenuBgLoaded = false;
 
 // Âm thanh (optional – nếu không có file vẫn chạy)
 static sf::SoundBuffer gEatBuf, gDieBuf;
@@ -265,6 +270,16 @@ bool Gfx_Init(sf::RenderWindow& window) {
     // Font
     if (!gFont.loadFromFile("assets/fonts/RobotoMono-Regular.ttf")) {
         std::cerr << "Failed to load font assets/fonts/RobotoMono-Regular.ttf\n";
+    }
+
+    // === TẢI BACKGROUND IMAGE CHO MAIN MENU ===
+    if (gMainMenuBgTexture.loadFromFile("assets/UI/MainScreen.png")) {
+        gMainMenuBgSprite.setTexture(gMainMenuBgTexture);
+        gMainMenuBgLoaded = true;
+        std::cout << "Main menu background loaded successfully!\n";
+    } else {
+        std::cerr << "Warning: Failed to load assets/UI/MainScreen.png - using default background\n";
+        gMainMenuBgLoaded = false;
     }
 
     // HUD & số MSSV trên thân
@@ -575,7 +590,7 @@ static void drawPrettyButton(sf::RenderWindow& win, const sf::FloatRect& baseR,
     win.draw(txt);
 }
 
-// ====== MAIN MENU (đơn giản) ======
+// ====== MAIN MENU (với background image) ======
 static sf::FloatRect gBtnPlayR, gBtnOptR, gBtnQuitR;
 
 static void drawButton(sf::RenderWindow& win, const sf::FloatRect& r,
@@ -583,7 +598,7 @@ static void drawButton(sf::RenderWindow& win, const sf::FloatRect& r,
 {
     sf::RectangleShape box({ r.width, r.height });
     box.setPosition(r.left, r.top);
-    box.setFillColor(hover ? sf::Color(60, 60, 60) : sf::Color(45, 45, 45));
+    box.setFillColor(hover ? sf::Color(60, 60, 60, 200) : sf::Color(45, 45, 45, 180));
     box.setOutlineThickness(2.f);
     box.setOutlineColor(sf::Color(80, 80, 80));
     win.draw(box);
@@ -615,25 +630,53 @@ const sf::FloatRect& Gfx_BtnQuit() { return gBtnQuitR; }
 
 void Gfx_DrawMainMenu(sf::RenderWindow& window, int previewSkin)
 {
-    // nền
-    window.clear(sf::Color(25, 25, 25));
+    // === VẼ BACKGROUND IMAGE (nếu có) ===
+    if (gMainMenuBgLoaded) {
+        // Scale background để fit window
+        sf::Vector2u winSize = window.getSize();
+        sf::Vector2u texSize = gMainMenuBgTexture.getSize();
+        
+        float scaleX = (float)winSize.x / texSize.x;
+        float scaleY = (float)winSize.y / texSize.y;
+        
+        // Giữ tỷ lệ và phủ toàn màn hình (cover)
+        float scale = std::max(scaleX, scaleY);
+        gMainMenuBgSprite.setScale(scale, scale);
+        
+        // Căn giữa
+        float posX = (winSize.x - texSize.x * scale) * 0.5f;
+        float posY = (winSize.y - texSize.y * scale) * 0.5f;
+        gMainMenuBgSprite.setPosition(posX, posY);
+        
+        window.draw(gMainMenuBgSprite);
+        
+        // Thêm lớp overlay tối để text dễ đọc hơn (optional)
+        sf::RectangleShape overlay({(float)winSize.x, (float)winSize.y});
+        overlay.setFillColor(sf::Color(0, 0, 0, 80)); // 80 = độ trong suốt
+        window.draw(overlay);
+    } else {
+        // Nếu không load được background, dùng màu mặc định
+        window.clear(sf::Color(25, 25, 25));
+    }
 
-    // Title
+    // Title với viền để nổi bật hơn trên background
     extern sf::Font gFont;
     sf::Text title("S N A K E", gFont, 48);
     title.setFillColor(sf::Color(230, 230, 230));
+    title.setOutlineThickness(3.f);
+    title.setOutlineColor(sf::Color(20, 20, 20));
     sf::FloatRect b = title.getLocalBounds();
     title.setOrigin(b.left + b.width / 2.f, b.top + b.height / 2.f);
     title.setPosition(window.getSize().x * 0.5f, window.getSize().y * 0.16f);
     window.draw(title);
 
-    // 3 nút
+    // 3 nút với alpha để trong suốt nhẹ
     auto mouse = sf::Mouse::getPosition(window);
     sf::Vector2f m((float)mouse.x, (float)mouse.y);
 
     auto hover = [&](const sf::FloatRect& r) {
         return r.contains(m);
-        };
+    };
     drawButton(window, gBtnPlayR, "PLAY", hover(gBtnPlayR));
     drawButton(window, gBtnOptR, "OPTIONS", hover(gBtnOptR));
     drawButton(window, gBtnQuitR, "QUIT", hover(gBtnQuitR));
@@ -650,7 +693,7 @@ void Gfx_DrawMainMenu(sf::RenderWindow& window, int previewSkin)
         case 4: return sf::Color(200, 140, 40);
         default:return sf::Color(170, 90, 190);
         }
-        };
+    };
     float startX = cx - 60.f;
     for (int i = 0; i < 6; i++) {
         cell.setPosition(startX + i * 24.f, cy);
@@ -658,9 +701,11 @@ void Gfx_DrawMainMenu(sf::RenderWindow& window, int previewSkin)
         window.draw(cell);
     }
 
-    // caption
+    // caption với viền
     sf::Text cap("Skin: 1..6  |  Options to change", gFont, 18);
-    cap.setFillColor(sf::Color(200, 200, 200));
+    cap.setFillColor(sf::Color(230, 230, 230));
+    cap.setOutlineThickness(1.5f);
+    cap.setOutlineColor(sf::Color(10, 10, 10));
     cap.setPosition(cx - cap.getLocalBounds().width / 2.f, cy + 38.f);
     window.draw(cap);
 }
@@ -696,7 +741,7 @@ void Gfx_DrawOptions(sf::RenderWindow& window, int previewSkin)
         case 4: return sf::Color(200, 140, 40);
         default:return sf::Color(170, 90, 190);
         }
-        };
+    };
 
     float startX = cx - 3 * 42.f;
     for (int i = 0; i < 6; i++) {
