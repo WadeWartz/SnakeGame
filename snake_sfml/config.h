@@ -11,8 +11,7 @@ constexpr int OBSTACLE_PER_LV = 2;    // mỗi level sinh thêm 2 chướng ng�
 //constexpr bool WRAP_DEFAULT = false; // mặc định có/không xuyên tường
 
 
-//Một ô lưới
-struct Cell { int x, y; };
 
 // Chuoi MSSV
-#define MSSV_STRING "22123456"
+#define MSSV_FULL "241270812412717224127260241273392412748424127081"
+struct Cell { int x, y; };

@@ -1,19 +1,16 @@
-﻿  game.cpp
-  gfx.cpp
-C:\Snake\snake_sfml\gfx.cpp(62,61): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
-C:\Snake\snake_sfml\gfx.cpp(62,61): warning C4244:         with
-C:\Snake\snake_sfml\gfx.cpp(62,61): warning C4244:         [
-C:\Snake\snake_sfml\gfx.cpp(62,61): warning C4244:             T=float
-C:\Snake\snake_sfml\gfx.cpp(62,61): warning C4244:         ]
-C:\Snake\snake_sfml\gfx.cpp(62,39): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
-C:\Snake\snake_sfml\gfx.cpp(62,39): warning C4244:         with
-C:\Snake\snake_sfml\gfx.cpp(62,39): warning C4244:         [
-C:\Snake\snake_sfml\gfx.cpp(62,39): warning C4244:             T=float
-C:\Snake\snake_sfml\gfx.cpp(62,39): warning C4244:         ]
-C:\Snake\snake_sfml\gfx.cpp(438,18): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-C:\Snake\snake_sfml\gfx.cpp(444,18): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-  main.cpp
-  Generating Code...
+﻿  gfx.cpp
+C:\Snake\snake_sfml\gfx.cpp(60,61): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+C:\Snake\snake_sfml\gfx.cpp(60,61): warning C4244:         with
+C:\Snake\snake_sfml\gfx.cpp(60,61): warning C4244:         [
+C:\Snake\snake_sfml\gfx.cpp(60,61): warning C4244:             T=float
+C:\Snake\snake_sfml\gfx.cpp(60,61): warning C4244:         ]
+C:\Snake\snake_sfml\gfx.cpp(60,39): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+C:\Snake\snake_sfml\gfx.cpp(60,39): warning C4244:         with
+C:\Snake\snake_sfml\gfx.cpp(60,39): warning C4244:         [
+C:\Snake\snake_sfml\gfx.cpp(60,39): warning C4244:             T=float
+C:\Snake\snake_sfml\gfx.cpp(60,39): warning C4244:         ]
+C:\Snake\snake_sfml\gfx.cpp(433,18): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+C:\Snake\snake_sfml\gfx.cpp(439,18): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
   snake_sfml.vcxproj -> C:\Snake\x64\Debug\snake_sfml.exe
   0 File(s) copied
   0 File(s) copied

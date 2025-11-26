@@ -59,3 +59,6 @@ void Game_SaveHighScore();
 //bool Game_PortalsActive();
 //Cell Game_PortalA();
 //Cell Game_PortalB();
+// Thêm vào cuối file game.h, trước #endif hoặc dòng cuối cùng
+bool Game_IsAutoPilot();
+Cell Game_PortalPos();

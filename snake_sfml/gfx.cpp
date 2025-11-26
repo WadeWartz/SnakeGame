@@ -14,8 +14,6 @@ static sf::RectangleShape gHeadRect, gBodyRect;
 static sf::CircleShape    gFoodShape;
 static sf::RectangleShape gObsRect;
 
-//static sf::CircleShape    gPortalAShape, gPortalBShape;
-
 //whirlwind
 static sf::Texture texWhirlwind;
 static bool texWhirlwindLoaded = false;
@@ -400,9 +398,6 @@ bool Gfx_Init(sf::RenderWindow& window) {
     gObsRect.setSize({ (float)TILE - 2,(float)TILE - 2 });
     gObsRect.setFillColor(sf::Color(170, 70, 70));
 
-  /*  gPortalAShape = sf::CircleShape(TILE * 0.45f); gPortalAShape.setFillColor(sf::Color(80, 120, 220));
-    gPortalBShape = sf::CircleShape(TILE * 0.45f); gPortalBShape.setFillColor(sf::Color(200, 90, 200));*/
-
     gEatBuf.loadFromFile("assets/sfx/eat.wav"); gEat.setBuffer(gEatBuf); gEat.setVolume(60.f);
     gDieBuf.loadFromFile("assets/sfx/die.wav"); gDie.setBuffer(gDieBuf); gDie.setVolume(70.f);
 
@@ -448,9 +443,11 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
     }
 
     Cell f = Game_Food();
-    auto pf = CellToPx(f.x, f.y);
-    gFoodShape.setPosition(pf.x + TILE * 0.15f, pf.y + TILE * 0.15f);
-    window.draw(gFoodShape);
+    if (f.x >= 0 && f.y >= 0) { // Chỉ vẽ nếu mồi có vị trí hợp lệ
+        auto pf = CellToPx(f.x, f.y);
+        gFoodShape.setPosition(pf.x + TILE * 0.15f, pf.y + TILE * 0.15f);
+        window.draw(gFoodShape);
+    }
 
     for (std::size_t i = 0; i < Game_ObstacleCount(); ++i) {
         Cell o = Game_Obstacle(i);
@@ -495,23 +492,39 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
         DrawTornado(window, c.x, c.y, tTornado);
     }
 
+    // --- VẼ CỔNG (PORTAL) KHI AUTO PILOT ---
+    if (Game_IsAutoPilot()) {
+        Cell portal = Game_PortalPos();
+        sf::Vector2f p = CellToPx(portal.x, portal.y);
 
- /*   if (Game_PortalsActive()) {
-        Cell pa = Game_PortalA(), pb = Game_PortalB();
-        auto pA = CellToPx(pa.x, pa.y);
-        auto pB = CellToPx(pb.x, pb.y);
-        gPortalAShape.setPosition(pA.x + TILE * 0.05f, pA.y + TILE * 0.05f);
-        gPortalBShape.setPosition(pB.x + TILE * 0.05f, pB.y + TILE * 0.05f);
-        window.draw(gPortalAShape);
-        window.draw(gPortalBShape);
-    }*/
+        // Vẽ một hình tròn màu xanh dương nhấp nháy làm cổng
+        static sf::CircleShape sPortal(TILE / 2.0f);
+        sPortal.setOrigin(TILE / 2.0f, TILE / 2.0f);
+        sPortal.setPosition(p.x + TILE / 2.0f, p.y + TILE / 2.0f);
 
-    bool first = true;
+        // Hiệu ứng nhấp nháy màu
+        static sf::Clock blinkClock;
+        if ((int)(blinkClock.getElapsedTime().asSeconds() * 10) % 2 == 0) {
+            sPortal.setFillColor(sf::Color::Cyan);
+        }
+        else {
+            sPortal.setFillColor(sf::Color::Blue);
+        }
+
+        window.draw(sPortal);
+    }
+
+    // --- VẼ RẮN VỚI SỐ ---
+    std::string fullStr = MSSV_FULL; // Lấy chuỗi từ config.h
     std::size_t len = Game_SnakeLen();
+    bool first = true;
+
     for (std::size_t i = 0; i < len; ++i) {
         Cell c = Game_SnakeSeg(i);
         auto p = CellToPx(c.x, c.y);
+
         sf::Color col = SkinColorFor(i, len, first);
+
         if (first) {
             gHeadRect.setFillColor(col);
             gHeadRect.setPosition(p.x + 1, p.y + 1);
@@ -524,23 +537,32 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
             window.draw(gBodyRect);
         }
 
-        if (!std::string(MSSV_STRING).empty()) {
-            char ch = MSSV_STRING[i % std::string(MSSV_STRING).size()];
-            gSeg.setString(sf::String(ch));
-            gSeg.setPosition(p.x + TILE * 0.28f, p.y + 2.f);
+        // --- VẼ SỐ LÊN THÂN ---
+        // Vẽ ký tự tương ứng từ chuỗi MSSV_FULL
+        if (i < fullStr.size()) {
+            char digit = fullStr[i];
+
+            gSeg.setString(std::string(1, digit));
+            gSeg.setCharacterSize(TILE - 8);
+            gSeg.setFillColor(sf::Color::White);
+            if (i == 0) gSeg.setFillColor(sf::Color::Yellow); // Đầu rắn màu vàng
+
+            sf::FloatRect textRect = gSeg.getLocalBounds();
+            gSeg.setOrigin(textRect.left + textRect.width / 2.0f,
+                textRect.top + textRect.height / 2.0f);
+            gSeg.setPosition(p.x + TILE / 2.0f, p.y + TILE / 2.0f);
+
             window.draw(gSeg);
         }
     }
 
     gHud.setString(
         "Score: " + std::to_string(Game_Score()) +
-        "   HS: " + std::to_string(Game_HighScore()) +
-        "   Len: " + std::to_string((int)Game_SnakeLen()) +
-        "   Lv: " + std::to_string(Game_Level()) +
-        //"   Wrap: " + std::string(Game_WrapOn() ? "ON" : "OFF") +
-        //"   Port: " + std::string(Game_PortalsActive() ? "ON" : "OFF") +
-        "   Spd: " + std::to_string((int)(1.f / Game_MoveInterval())) + " step/s" +
-        "   Skin: " + std::string(Gfx_SkinName())
+        "    HS: " + std::to_string(Game_HighScore()) +
+        "    Len: " + std::to_string((int)Game_SnakeLen()) +
+        "    Lv: " + std::to_string(Game_Level()) +
+        "    Spd: " + std::to_string((int)(1.f / Game_MoveInterval())) + " step/s" +
+        "    Skin: " + std::string(Gfx_SkinName())
     );
     gHud.setPosition(8.f, 4.f);
     window.draw(gHud);
@@ -666,7 +688,7 @@ void Gfx_DrawMainMenu(sf::RenderWindow& window, int previewSkin)
         window.draw(gTitleSprite);
     }
     else {
-        sf::Text title("S N A K E  G A M E", gFont, 48);
+        sf::Text title("S N A K E   G A M E", gFont, 48);
         title.setFillColor(sf::Color(230, 230, 230));
         title.setOutlineThickness(3.f);
         title.setOutlineColor(sf::Color(20, 20, 20));
@@ -742,7 +764,7 @@ void Gfx_DrawMainMenu(sf::RenderWindow& window, int previewSkin)
         window.draw(cell);
     }
 
-    sf::Text cap("Skin: 1..6  |  Options to change", gFont, 16);
+    sf::Text cap("Skin: 1..6   |   Options to change", gFont, 16);
     cap.setFillColor(sf::Color(230, 230, 230));
     cap.setOutlineThickness(1.5f);
     cap.setOutlineColor(sf::Color(10, 10, 10));
@@ -761,7 +783,7 @@ void Gfx_DrawOptions(sf::RenderWindow& window, int previewSkin)
     title.setPosition(window.getSize().x * 0.5f, window.getSize().y * 0.16f);
     window.draw(title);
 
-    sf::Text hint("Choose Snake Skin: 1..6  |  ENTER: Back  |  ESC: Back", gFont, 20);
+    sf::Text hint("Choose Snake Skin: 1..6   |   ENTER: Back   |   ESC: Back", gFont, 20);
     hint.setFillColor(sf::Color(200, 200, 200));
     hint.setPosition(40.f, window.getSize().y * 0.28f);
     window.draw(hint);
@@ -788,4 +810,3 @@ void Gfx_DrawOptions(sf::RenderWindow& window, int previewSkin)
         window.draw(cell);
     }
 }
-
