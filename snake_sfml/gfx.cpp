@@ -14,7 +14,16 @@ static sf::RectangleShape gHeadRect, gBodyRect;
 static sf::CircleShape    gFoodShape;
 static sf::RectangleShape gObsRect;
 
-static sf::CircleShape    gPortalAShape, gPortalBShape;
+//static sf::CircleShape    gPortalAShape, gPortalBShape;
+
+//whirlwind
+static sf::Texture texWhirlwind;
+static bool texWhirlwindLoaded = false;
+
+//rock
+static sf::Texture gRockTexture;
+static sf::Sprite  gRockSprite;
+static bool gRockLoaded = false;
 
 // === THÊM TEXTURE VÀ SPRITE CHO BACKGROUND VÀ UI ELEMENTS ===
 static sf::Texture gMainMenuBgTexture;
@@ -92,6 +101,29 @@ static void LayoutPauseMenu(int winW, int winH) {
     prepBtn(gBtnResume, gTxtResume, "Resume (P)");
     prepBtn(gBtnRestart, gTxtRestart, "Restart (Space)");
     prepBtn(gBtnExit, gTxtExit, "Exit");
+}
+
+static void DrawTornado(sf::RenderWindow& win, int gx, int gy, float t)
+{
+    sf::Sprite sp(texWhirlwind);
+
+    // Animation xoay (cho đẹp)
+    sp.setRotation(std::fmod(t * 120.f, 360.f));
+
+    // Scale chuẩn theo TILE
+    float sx = float(TILE) / texWhirlwind.getSize().x;
+    float sy = float(TILE) / texWhirlwind.getSize().y;
+    sp.setScale(sx, sy);
+
+    // Đặt tâm xoay ở giữa
+    sp.setOrigin(texWhirlwind.getSize().x * 0.5f,
+        texWhirlwind.getSize().y * 0.5f);
+
+    // Đưa sprite vào đúng ô lưới
+    sp.setPosition(gx * TILE + TILE * 0.5f,
+        gy * TILE + TILE * 0.5f);
+
+    win.draw(sp);
 }
 
 void Gfx_MenuUpdateHover(const sf::Vector2f& m) {
@@ -319,6 +351,7 @@ bool Gfx_Init(sf::RenderWindow& window) {
         std::cerr << "Warning: Failed to load assets/UI/Start.png\n";
     }
 
+
     if (gBtnOptionTexture.loadFromFile("assets/UI/Option.png")) {
         gBtnOptionSprite.setTexture(gBtnOptionTexture);
         std::cout << "Option button image loaded successfully!\n";
@@ -335,6 +368,24 @@ bool Gfx_Init(sf::RenderWindow& window) {
         std::cerr << "Warning: Failed to load assets/UI/Quit.png\n";
     }
 
+    if (gRockTexture.loadFromFile("assets/UI/Rock.png")) {
+        gRockSprite.setTexture(gRockTexture);
+        gRockLoaded = true;
+        std::cout << "Rock obstacle loaded!\n";
+    }
+    else {
+        std::cerr << "Failed to load assets/UI/Rock.png — using default rectangle.\n";
+        gRockLoaded = false;
+    }
+
+    if (!texWhirlwindLoaded)
+    {
+        if (!texWhirlwind.loadFromFile("assets/UI/Whirlwind.png"))
+            std::cerr << "Failed to load assets/UI/Whirlwind.png\n";
+        else
+            texWhirlwindLoaded = true;
+    }
+
     gButtonImagesLoaded = (gBtnStartTexture.getSize().x > 0 && gBtnOptionTexture.getSize().x > 0 && gBtnQuitTexture.getSize().x > 0);
 
     gHud.setFont(gFont); gHud.setCharacterSize(18); gHud.setFillColor(sf::Color(220, 220, 220));
@@ -349,8 +400,8 @@ bool Gfx_Init(sf::RenderWindow& window) {
     gObsRect.setSize({ (float)TILE - 2,(float)TILE - 2 });
     gObsRect.setFillColor(sf::Color(170, 70, 70));
 
-    gPortalAShape = sf::CircleShape(TILE * 0.45f); gPortalAShape.setFillColor(sf::Color(80, 120, 220));
-    gPortalBShape = sf::CircleShape(TILE * 0.45f); gPortalBShape.setFillColor(sf::Color(200, 90, 200));
+  /*  gPortalAShape = sf::CircleShape(TILE * 0.45f); gPortalAShape.setFillColor(sf::Color(80, 120, 220));
+    gPortalBShape = sf::CircleShape(TILE * 0.45f); gPortalBShape.setFillColor(sf::Color(200, 90, 200));*/
 
     gEatBuf.loadFromFile("assets/sfx/eat.wav"); gEat.setBuffer(gEatBuf); gEat.setVolume(60.f);
     gDieBuf.loadFromFile("assets/sfx/die.wav"); gDie.setBuffer(gDieBuf); gDie.setVolume(70.f);
@@ -404,11 +455,48 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
     for (std::size_t i = 0; i < Game_ObstacleCount(); ++i) {
         Cell o = Game_Obstacle(i);
         auto p = CellToPx(o.x, o.y);
-        gObsRect.setPosition(p.x + 1, p.y + 1);
-        window.draw(gObsRect);
+
+        if (gRockLoaded) {
+
+            gRockSprite.setOrigin(
+                gRockTexture.getSize().x * 0.5f,
+                gRockTexture.getSize().y * 0.5f
+            );
+
+            //gRockSprite.setPosition(p.x + 1, p.y + 1);
+
+            float scale = (float)(TILE - 2) / gRockTexture.getSize().x;
+            scale *= 1.3f;      // tăng kích thước lên 30%
+            gRockSprite.setScale(scale, scale);
+
+            // Đặt sprite ở trung tâm ô
+            gRockSprite.setPosition(
+                p.x + TILE * 0.5f,
+                p.y + TILE * 0.5f
+            );
+
+            window.draw(gRockSprite);
+        }
+        else {
+            gObsRect.setPosition(p.x + 1, p.y + 1);
+            window.draw(gObsRect);
+        }
     }
 
-    if (Game_PortalsActive()) {
+    // --- Tornado ---
+    static sf::Clock clock;
+    float dt = clock.restart().asSeconds();   // ✔ GIÁ TRỊ HỢP LỆ
+    static float tTornado = 0.f;
+    tTornado += dt;
+
+    for (size_t i = 0; i < Game_WhirlwindCount(); ++i)
+    {
+        Cell c = Game_Whirlwind(i);
+        DrawTornado(window, c.x, c.y, tTornado);
+    }
+
+
+ /*   if (Game_PortalsActive()) {
         Cell pa = Game_PortalA(), pb = Game_PortalB();
         auto pA = CellToPx(pa.x, pa.y);
         auto pB = CellToPx(pb.x, pb.y);
@@ -416,7 +504,7 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
         gPortalBShape.setPosition(pB.x + TILE * 0.05f, pB.y + TILE * 0.05f);
         window.draw(gPortalAShape);
         window.draw(gPortalBShape);
-    }
+    }*/
 
     bool first = true;
     std::size_t len = Game_SnakeLen();
@@ -449,8 +537,8 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
         "   HS: " + std::to_string(Game_HighScore()) +
         "   Len: " + std::to_string((int)Game_SnakeLen()) +
         "   Lv: " + std::to_string(Game_Level()) +
-        "   Wrap: " + std::string(Game_WrapOn() ? "ON" : "OFF") +
-        "   Port: " + std::string(Game_PortalsActive() ? "ON" : "OFF") +
+        //"   Wrap: " + std::string(Game_WrapOn() ? "ON" : "OFF") +
+        //"   Port: " + std::string(Game_PortalsActive() ? "ON" : "OFF") +
         "   Spd: " + std::to_string((int)(1.f / Game_MoveInterval())) + " step/s" +
         "   Skin: " + std::string(Gfx_SkinName())
     );
@@ -484,6 +572,7 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
     Gfx_SkinMenuDraw(window);
     window.display();
 }
+
 
 // ================== Main Menu ==================
 static void drawButton(sf::RenderWindow& win, const sf::FloatRect& r,
@@ -592,9 +681,9 @@ void Gfx_DrawMainMenu(sf::RenderWindow& window, int previewSkin)
     sf::Vector2f m((float)mouse.x, (float)mouse.y);
 
     if (gButtonImagesLoaded) {
-        bool hoverStart  = gBtnPlayR.contains(m);
+        bool hoverStart = gBtnPlayR.contains(m);
         bool hoverOption = gBtnOptR.contains(m);
-        bool hoverQuit   = gBtnQuitR.contains(m);
+        bool hoverQuit = gBtnQuitR.contains(m);
 
         float scale = std::min(winSize.x / 1200.f, winSize.y / 900.f);
         scale = std::max(0.35f, std::min(scale, 0.7f));
@@ -699,3 +788,4 @@ void Gfx_DrawOptions(sf::RenderWindow& window, int previewSkin)
         window.draw(cell);
     }
 }
+
