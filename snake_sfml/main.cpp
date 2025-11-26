@@ -1,4 +1,4 @@
-﻿#include <SFML/Graphics.hpp>
+#include <SFML/Graphics.hpp>
 #include "config.h"
 #include "game.h"
 #include "gfx.h"
@@ -78,7 +78,7 @@ int main() {
                 if (e.type == sf::Event::KeyPressed) {
                     // Chức năng
                     if (e.key.code == sf::Keyboard::P)      Game_TogglePause();
-                    if (e.key.code == sf::Keyboard::O)      Game_ToggleWrap();
+                    //if (e.key.code == sf::Keyboard::O)      Game_ToggleWrap();
                     if (e.key.code == sf::Keyboard::Enter)  Game_RestartIfOver();
                     if (e.key.code == sf::Keyboard::Space) { Game_Reset(); Game_SetPaused(false); }
 
