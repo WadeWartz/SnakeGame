@@ -2,7 +2,7 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>C:\Users\nguye\source\repos\snake_sfml\x64\Debug\snake_sfml.exe</FullPath>
+      <FullPath>C:\Snake\x64\Debug\snake_sfml.exe</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />

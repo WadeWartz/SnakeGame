@@ -1,3 +1,4 @@
+#include <SFML/Graphics.hpp>
 #include "game.h"
 #include "config.h"
 #include <deque>
@@ -24,8 +25,7 @@ static float gAcc = 0.f;
 
 static int gEvents = 0; // bit0=EAT, bit1=DIE
 
-int g_Level = 1;
-PortalU* g_Ugate = nullptr;
+
 
 static bool g_Transitioning = false;
 static sf::Texture g_TransitionTex;

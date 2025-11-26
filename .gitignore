@@ -1,0 +1,18 @@
+# Chặn thư mục rác của Visual Studio
+.vs/
+.vscode/
+
+# Chặn thư mục biên dịch (nặng và không cần thiết)
+Debug/
+Release/
+x64/
+x86/
+/ipch/
+
+# Chặn các file hệ thống tạm
+*.db
+*.ipch
+*.opendb
+*.sdf
+*.user
+*.suo
