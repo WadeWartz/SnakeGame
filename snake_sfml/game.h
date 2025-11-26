@@ -1,6 +1,11 @@
-﻿#pragma once
+#pragma once
 #include "config.h"
 #include <cstddef>
+#include <vector>
+
+#include "PortalU.h"
+
+//extern PortalU* g_Ugate;
 
 // === Vòng đời & trạng thái ===
 void Game_Init();
@@ -8,6 +13,12 @@ void Game_Reset();
 void Game_TogglePause();
 void Game_SetPaused(bool v);
 void Game_RestartIfOver();
+
+
+/*extern int g_Level;
+void Game_NextLevel();
+void Game_TriggerTransition();*/
+
 
 // === Input hướng (nhận mã phím của SFML dưới dạng int) ===
 void Game_OnKeyPressed(int sfmlKeyCode);
@@ -30,6 +41,10 @@ Cell        Game_Food();
 std::size_t Game_ObstacleCount();
 Cell        Game_Obstacle(std::size_t i);
 
+// --- Whirlwind getters (mới) ---
+std::size_t Game_WhirlwindCount();
+Cell        Game_Whirlwind(std::size_t i);
+
 // Sự kiện 1 lần: bit0=EAT, bit1=DIE
 int         Game_ConsumeEvents();
 
@@ -37,10 +52,10 @@ int         Game_ConsumeEvents();
 void Game_LoadHighScore();
 void Game_SaveHighScore();
 
-// === Wrap & Portal ===
-void Game_ToggleWrap();
-bool Game_WrapOn();
+//// === Wrap & Portal ===
+//void Game_ToggleWrap();
+//bool Game_WrapOn();
 
-bool Game_PortalsActive();
-Cell Game_PortalA();
-Cell Game_PortalB();
+//bool Game_PortalsActive();
+//Cell Game_PortalA();
+//Cell Game_PortalB();
