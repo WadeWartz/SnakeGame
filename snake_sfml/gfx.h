@@ -1,6 +1,7 @@
-﻿#pragma once
+#pragma once
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
+#include <SFML/Window.hpp>
 
 // Khởi tạo tài nguyên đồ hoạ/âm thanh
 bool Gfx_Init(sf::RenderWindow& window);
