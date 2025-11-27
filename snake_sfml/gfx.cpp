@@ -463,7 +463,7 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
             //gRockSprite.setPosition(p.x + 1, p.y + 1);
 
             float scale = (float)(TILE - 2) / gRockTexture.getSize().x;
-            scale *= 1.3f;      // tăng kích thước lên 30%
+            scale *= 1.5f;      // tăng kích thước lên 30% -> 50%
             gRockSprite.setScale(scale, scale);
 
             // Đặt sprite ở trung tâm ô
