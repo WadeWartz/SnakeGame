@@ -2,7 +2,7 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>C:\Snake\x64\Debug\snake_sfml.exe</FullPath>
+      <FullPath>C:\Users\phtun\SnakeGame\x64\Debug\snake_sfml.exe</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />
