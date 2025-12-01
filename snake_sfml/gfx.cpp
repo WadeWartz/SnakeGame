@@ -48,9 +48,22 @@ static sf::Sound gEat, gDie;
 
 // ===== Pause Menu =====
 static sf::RectangleShape gMenuPanel;
-static sf::RectangleShape gBtnResume, gBtnRestart, gBtnExit;
-static sf::Text gTxtResume, gTxtRestart, gTxtExit;
+static sf::FloatRect gBtnResumeRect, gBtnRestartRect, gBtnExitRect;
 static int gHover = 0; // 0=none,1=Resume,2=Restart,3=Exit
+
+// ===== Pause Menu Button Images =====
+static sf::Texture gBtnResumeTexture, gBtnRestartTexture, gBtnExitTexture;
+static sf::Sprite gBtnResumeSprite, gBtnRestartSprite, gBtnExitSprite;
+static bool gPauseButtonImagesLoaded = false;
+
+// ===== Pause Menu Background & Title =====
+static sf::Texture gPauseScreenBgTexture;
+static sf::Sprite gPauseScreenBgSprite;
+static bool gPauseScreenBgLoaded = false;
+
+static sf::Texture gPauseTitleTexture;
+static sf::Sprite gPauseTitleSprite;
+static bool gPauseTitleLoaded = false;
 
 // ===== Main Menu Buttons =====
 static sf::FloatRect gBtnPlayR, gBtnOptR, gBtnQuitR;
@@ -60,45 +73,41 @@ static inline sf::Vector2f CellToPx(int cx, int cy) {
     return sf::Vector2f((cx + BORDER) * TILE, (cy + BORDER) * TILE);
 }
 
-static bool InRect(const sf::RectangleShape& r, const sf::Vector2f& p) {
-    auto a = r.getPosition(), s = r.getSize();
-    return (p.x >= a.x && p.x <= a.x + s.x && p.y >= a.y && p.y <= a.y + s.y);
+static bool InRect(const sf::FloatRect& r, const sf::Vector2f& p) {
+    return r.contains(p);
 }
 
 static void LayoutPauseMenu(int winW, int winH) {
-    const float panelW = 360.f, panelH = 240.f;
-    const float px = (winW - panelW) / 2.f, py = (winH - panelH) / 2.f;
+    if (gPauseButtonImagesLoaded) {
+        float buttonW = 200.f, buttonH = 60.f;
+        float gap = 20.f;
+        float centerX = (winW - buttonW) * 0.5f;
+        float startY = winH * 0.35f;
 
-    gMenuPanel.setPosition(px, py);
-    gMenuPanel.setSize({ panelW,panelH });
-    gMenuPanel.setFillColor(sf::Color(25, 25, 25, 240));
-    gMenuPanel.setOutlineThickness(2.f);
-    gMenuPanel.setOutlineColor(sf::Color(90, 90, 90));
+        gBtnResumeRect = sf::FloatRect(centerX, startY, buttonW, buttonH);
+        gBtnRestartRect = sf::FloatRect(centerX, startY + buttonH + gap, buttonW, buttonH);
+        gBtnExitRect = sf::FloatRect(centerX, startY + (buttonH + gap) * 2, buttonW, buttonH);
+    }
+    else {
+        const float panelW = 360.f, panelH = 240.f;
+        const float px = (winW - panelW) / 2.f, py = (winH - panelH) / 2.f;
 
-    const float bw = panelW - 60.f, bh = 48.f;
-    const float bx = px + 30.f;
-    float by = py + 60.f;
+        gMenuPanel.setPosition(px, py);
+        gMenuPanel.setSize({ panelW, panelH });
+        gMenuPanel.setFillColor(sf::Color(25, 25, 25, 240));
+        gMenuPanel.setOutlineThickness(2.f);
+        gMenuPanel.setOutlineColor(sf::Color(90, 90, 90));
 
-    auto prepBtn = [&](sf::RectangleShape& r, sf::Text& t, const char* label) {
-        r.setSize({ bw,bh });
-        r.setPosition(bx, by);
-        r.setFillColor(sf::Color(50, 50, 50));
-        r.setOutlineThickness(2.f);
-        r.setOutlineColor(sf::Color(80, 80, 80));
+        const float bw = panelW - 60.f, bh = 48.f;
+        const float bx = px + 30.f;
+        float by = py + 60.f;
 
-        t.setFont(gFont);
-        t.setString(label);
-        t.setCharacterSize(22);
-        t.setFillColor(sf::Color(230, 230, 230));
-        sf::FloatRect b = t.getLocalBounds();
-        t.setOrigin(b.left + b.width / 2.f, b.top + b.height / 2.f);
-        t.setPosition(bx + bw / 2.f, by + bh / 2.f);
-
+        gBtnResumeRect = sf::FloatRect(bx, by, bw, bh);
         by += bh + 18.f;
-        };
-    prepBtn(gBtnResume, gTxtResume, "Resume (P)");
-    prepBtn(gBtnRestart, gTxtRestart, "Restart (Space)");
-    prepBtn(gBtnExit, gTxtExit, "Exit");
+        gBtnRestartRect = sf::FloatRect(bx, by, bw, bh);
+        by += bh + 18.f;
+        gBtnExitRect = sf::FloatRect(bx, by, bw, bh);
+    }
 }
 
 static void DrawTornado(sf::RenderWindow& win, int gx, int gy, float t)
@@ -127,21 +136,16 @@ static void DrawTornado(sf::RenderWindow& win, int gx, int gy, float t)
 void Gfx_MenuUpdateHover(const sf::Vector2f& m) {
     if (!Game_Paused()) { gHover = 0; return; }
     gHover = 0;
-    if (InRect(gBtnResume, m)) gHover = 1;
-    if (InRect(gBtnRestart, m)) gHover = 2;
-    if (InRect(gBtnExit, m)) gHover = 3;
-
-    auto col = [&](int id) { return (gHover == id) ? sf::Color(70, 110, 180) : sf::Color(50, 50, 50); };
-    gBtnResume.setFillColor(col(1));
-    gBtnRestart.setFillColor(col(2));
-    gBtnExit.setFillColor(col(3));
+    if (InRect(gBtnResumeRect, m)) gHover = 1;
+    if (InRect(gBtnRestartRect, m)) gHover = 2;
+    if (InRect(gBtnExitRect, m)) gHover = 3;
 }
 
 MenuHit Gfx_MenuHitTest(const sf::Vector2f& m) {
     if (!Game_Paused()) return MH_None;
-    if (InRect(gBtnResume, m)) return MH_Resume;
-    if (InRect(gBtnRestart, m)) return MH_Restart;
-    if (InRect(gBtnExit, m)) return MH_Exit;
+    if (InRect(gBtnResumeRect, m)) return MH_Resume;
+    if (InRect(gBtnRestartRect, m)) return MH_Restart;
+    if (InRect(gBtnExitRect, m)) return MH_Exit;
     return MH_None;
 }
 
@@ -349,7 +353,6 @@ bool Gfx_Init(sf::RenderWindow& window) {
         std::cerr << "Warning: Failed to load assets/UI/Start.png\n";
     }
 
-
     if (gBtnOptionTexture.loadFromFile("assets/UI/Option.png")) {
         gBtnOptionSprite.setTexture(gBtnOptionTexture);
         std::cout << "Option button image loaded successfully!\n";
@@ -383,6 +386,58 @@ bool Gfx_Init(sf::RenderWindow& window) {
         else
             texWhirlwindLoaded = true;
     }
+
+    // ===== Load Pause Screen Background & Title =====
+    if (gPauseScreenBgTexture.loadFromFile("assets/UI/PauseScreen.png")) {
+        gPauseScreenBgSprite.setTexture(gPauseScreenBgTexture);
+        gPauseScreenBgLoaded = true;
+        std::cout << "Pause screen background loaded successfully!\n";
+    }
+    else {
+        std::cerr << "Warning: Failed to load assets/UI/PauseScreen.png\n";
+        gPauseScreenBgLoaded = false;
+    }
+
+    if (gPauseTitleTexture.loadFromFile("assets/UI/Paused.png")) {
+        gPauseTitleSprite.setTexture(gPauseTitleTexture);
+        gPauseTitleLoaded = true;
+        std::cout << "Pause title image loaded successfully!\n";
+    }
+    else {
+        std::cerr << "Warning: Failed to load assets/UI/Paused.png\n";
+        gPauseTitleLoaded = false;
+    }
+
+    // ===== Load Pause Menu Button Images =====
+    bool resumeLoaded = gBtnResumeTexture.loadFromFile("assets/UI/Resume.png");
+    bool restartLoaded = gBtnRestartTexture.loadFromFile("assets/UI/Restart.png");
+    bool exitLoaded = gBtnExitTexture.loadFromFile("assets/UI/Exit.png");
+
+    if (resumeLoaded) {
+        gBtnResumeSprite.setTexture(gBtnResumeTexture);
+        std::cout << "Resume button image loaded successfully!\n";
+    }
+    else {
+        std::cerr << "Warning: Failed to load assets/UI/Resume.png\n";
+    }
+
+    if (restartLoaded) {
+        gBtnRestartSprite.setTexture(gBtnRestartTexture);
+        std::cout << "Restart button image loaded successfully!\n";
+    }
+    else {
+        std::cerr << "Warning: Failed to load assets/UI/Restart.png\n";
+    }
+
+    if (exitLoaded) {
+        gBtnExitSprite.setTexture(gBtnExitTexture);
+        std::cout << "Exit button image loaded successfully!\n";
+    }
+    else {
+        std::cerr << "Warning: Failed to load assets/UI/Exit.png (for pause menu)\n";
+    }
+
+    gPauseButtonImagesLoaded = (resumeLoaded && restartLoaded && exitLoaded);
 
     gButtonImagesLoaded = (gBtnStartTexture.getSize().x > 0 && gBtnOptionTexture.getSize().x > 0 && gBtnQuitTexture.getSize().x > 0);
 
@@ -582,13 +637,100 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
     else if (Game_Paused()) {
         LayoutPauseMenu(WIN_W, WIN_H);
 
-        sf::RectangleShape fov({ (float)WIN_W,(float)WIN_H });
-        fov.setFillColor(sf::Color(0, 0, 0, 140)); window.draw(fov);
+        // Draw pause screen background if loaded
+        if (gPauseScreenBgLoaded) {
+            sf::Vector2u bgSize = gPauseScreenBgTexture.getSize();
+            float scaleX = (float)WIN_W / bgSize.x;
+            float scaleY = (float)WIN_H / bgSize.y;
+            float scale = std::max(scaleX, scaleY);
+            gPauseScreenBgSprite.setScale(scale, scale);
+            float posX = (WIN_W - bgSize.x * scale) * 0.5f;
+            float posY = (WIN_H - bgSize.y * scale) * 0.5f;
+            gPauseScreenBgSprite.setPosition(posX, posY);
+            window.draw(gPauseScreenBgSprite);
+        }
+        else {
+            sf::RectangleShape fov({ (float)WIN_W,(float)WIN_H });
+            fov.setFillColor(sf::Color(0, 0, 0, 140)); window.draw(fov);
+        }
 
-        window.draw(gMenuPanel);
-        window.draw(gBtnResume);  window.draw(gTxtResume);
-        window.draw(gBtnRestart); window.draw(gTxtRestart);
-        window.draw(gBtnExit);    window.draw(gTxtExit);
+        // Draw pause title if loaded
+        if (gPauseTitleLoaded) {
+            float titleScale = std::min(WIN_W / 1000.f, WIN_H / 800.f);
+            titleScale = std::max(0.3f, std::min(titleScale, 0.8f));
+            sf::Vector2u titleSize = gPauseTitleTexture.getSize();
+            gPauseTitleSprite.setScale(titleScale, titleScale);
+            float titleW = titleSize.x * titleScale;
+            gPauseTitleSprite.setPosition((WIN_W - titleW) * 0.5f, WIN_H * 0.15f);
+            window.draw(gPauseTitleSprite);
+        }
+
+        // Draw pause menu buttons (image-based if available)
+        if (gPauseButtonImagesLoaded) {
+            float baseScale = std::min(gBtnResumeRect.width / (float)gBtnResumeTexture.getSize().x,
+                gBtnResumeRect.height / (float)gBtnResumeTexture.getSize().y);
+
+            // Resume button with hover effect (scale 1.1x when hovered)
+            float resumeScale = baseScale * (gHover == 1 ? 1.1f : 1.0f);
+            gBtnResumeSprite.setScale(resumeScale, resumeScale);
+            sf::Vector2u resumeSize = gBtnResumeTexture.getSize();
+            float resumeW = resumeSize.x * resumeScale;
+            float resumeH = resumeSize.y * resumeScale;
+            float resumeX = gBtnResumeRect.left + (gBtnResumeRect.width - resumeW) * 0.5f;
+            float resumeY = gBtnResumeRect.top + (gBtnResumeRect.height - resumeH) * 0.5f;
+            gBtnResumeSprite.setPosition(resumeX, resumeY);
+            gBtnResumeSprite.setColor(gHover == 1 ? sf::Color(255, 255, 255) : sf::Color(240, 240, 240));
+            window.draw(gBtnResumeSprite);
+
+            // Restart button with hover effect (scale 1.1x when hovered)
+            float restartScale = baseScale * (gHover == 2 ? 1.1f : 1.0f);
+            gBtnRestartSprite.setScale(restartScale, restartScale);
+            sf::Vector2u restartSize = gBtnRestartTexture.getSize();
+            float restartW = restartSize.x * restartScale;
+            float restartH = restartSize.y * restartScale;
+            float restartX = gBtnRestartRect.left + (gBtnRestartRect.width - restartW) * 0.5f;
+            float restartY = gBtnRestartRect.top + (gBtnRestartRect.height - restartH) * 0.5f;
+            gBtnRestartSprite.setPosition(restartX, restartY);
+            gBtnRestartSprite.setColor(gHover == 2 ? sf::Color(255, 255, 255) : sf::Color(240, 240, 240));
+            window.draw(gBtnRestartSprite);
+
+            // Exit button with hover effect (scale 1.1x when hovered)
+            float exitScale = baseScale * (gHover == 3 ? 1.1f : 1.0f);
+            gBtnExitSprite.setScale(exitScale, exitScale);
+            sf::Vector2u exitSize = gBtnExitTexture.getSize();
+            float exitW = exitSize.x * exitScale;
+            float exitH = exitSize.y * exitScale;
+            float exitX = gBtnExitRect.left + (gBtnExitRect.width - exitW) * 0.5f;
+            float exitY = gBtnExitRect.top + (gBtnExitRect.height - exitH) * 0.5f;
+            gBtnExitSprite.setPosition(exitX, exitY);
+            gBtnExitSprite.setColor(gHover == 3 ? sf::Color(255, 255, 255) : sf::Color(240, 240, 240));
+            window.draw(gBtnExitSprite);
+        }
+        else {
+            // Fallback to text-based buttons if images not loaded
+            window.draw(gMenuPanel);
+
+            sf::RectangleShape btnBg;
+            auto drawTextButton = [&](const sf::FloatRect& rect, const std::string& text, bool hover) {
+                btnBg.setPosition(rect.left, rect.top);
+                btnBg.setSize({ rect.width, rect.height });
+                btnBg.setFillColor(hover ? sf::Color(70, 110, 180) : sf::Color(50, 50, 50));
+                btnBg.setOutlineThickness(2.f);
+                btnBg.setOutlineColor(sf::Color(80, 80, 80));
+                window.draw(btnBg);
+
+                sf::Text txt(text, gFont, 22);
+                txt.setFillColor(sf::Color(230, 230, 230));
+                sf::FloatRect b = txt.getLocalBounds();
+                txt.setOrigin(b.left + b.width / 2.f, b.top + b.height / 2.f);
+                txt.setPosition(rect.left + rect.width / 2.f, rect.top + rect.height / 2.f);
+                window.draw(txt);
+                };
+
+            drawTextButton(gBtnResumeRect, "Resume (P)", gHover == 1);
+            drawTextButton(gBtnRestartRect, "Restart (Space)", gHover == 2);
+            drawTextButton(gBtnExitRect, "Exit", gHover == 3);
+        }
     }
 
     Gfx_SkinMenuDraw(window);
@@ -638,7 +780,7 @@ void Gfx_MenuLayout(int ww, int wh)
         float gap = 30.f;
 
         gBtnPlayR = { (ww - btnW) * 0.5f, startY, btnW, btnH };
-        gBtnOptR = { (ww - btnW) * 0.5f, startY + btnH + gap, btnW, btnH };
+        gBtnOptR = { (ww - optionW) * 0.5f, startY + btnH + gap, optionW, optionH };
         gBtnQuitR = { (ww - quitW) * 0.5f, startY + (btnH + gap) * 2, quitW, quitH };
     }
     else {
