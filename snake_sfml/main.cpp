@@ -92,7 +92,7 @@ int main() {
                     auto hit = Gfx_MenuHitTest(sf::Vector2f((float)e.mouseButton.x, (float)e.mouseButton.y));
                     if (hit == MH_Resume)  Game_SetPaused(false);
                     else if (hit == MH_Restart) { Game_Reset(); Game_SetPaused(false); }
-                    else if (hit == MH_Exit)    state = ST_MENU;
+                    else if (hit == MH_Exit)    { Game_SetPaused(false); state = ST_MENU; }
                 }
             }
         } // pollEvent
