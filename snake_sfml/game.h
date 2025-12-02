@@ -13,6 +13,7 @@ void Game_Reset();
 void Game_TogglePause();
 void Game_SetPaused(bool v);
 void Game_RestartIfOver();
+bool Game_IsGhost();
 
 
 /*extern int g_Level;
