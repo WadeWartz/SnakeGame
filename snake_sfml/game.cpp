@@ -34,9 +34,17 @@ static int gEatenInLevel = 0;
 static std::vector<Cell> gObstacles;
 
 // Whirlwind
-struct Whirlwind { Cell pos; };
+//struct Whirlwind { Cell pos; };
+struct Whirlwind {
+    Cell pos;
+    float spawnTime;  // thời điểm spawn
+    float lifeTime;   // thời gian tồn tại (3 giây)
+};
+
 static std::vector<Whirlwind> gWhirlwinds;
 static float gTime = 0.f;
+static bool gGhostMode = false;
+static float gGhostRemaining = 0.f;
 
 // ===== AUTO PILOT & PORTAL (MỚI) =====
 static bool gAutoPilot = false;       // Đang trong chế độ tự đi?
@@ -58,10 +66,18 @@ static bool OccupiedByWhirlwind(int x, int y) {
     for (const auto& w : gWhirlwinds) if (w.pos.x == x && w.pos.y == y) return true;
     return false;
 }
+//static void RemoveWhirlwindAt(int x, int y) {
+//    for (auto it = gWhirlwinds.begin(); it != gWhirlwinds.end(); ++it) {
+//        if (it->pos.x == x && it->pos.y == y) { gWhirlwinds.erase(it); return; }
+//    }
+//}
+
 static void RemoveWhirlwindAt(int x, int y) {
-    for (auto it = gWhirlwinds.begin(); it != gWhirlwinds.end(); ++it) {
-        if (it->pos.x == x && it->pos.y == y) { gWhirlwinds.erase(it); return; }
-    }
+    gWhirlwinds.erase(
+        std::remove_if(gWhirlwinds.begin(), gWhirlwinds.end(),
+            [&](auto& w) { return w.pos.x == x && w.pos.y == y; }),
+        gWhirlwinds.end()
+    );
 }
 
 // Spawn các vật thể
@@ -79,12 +95,36 @@ static void SpawnWhirlwinds(int count) {
     for (int k = 0; k < count; ++k) {
         int wx, wy, guard = 0;
         do {
-            wx = RandInt(0, BOARD_W - 1); wy = RandInt(0, BOARD_H - 1);
+            wx = RandInt(0, BOARD_W - 1);
+            wy = RandInt(0, BOARD_H - 1);
             guard++;
-        } while (guard < 1000 && (OccupiedBySnake(wx, wy) || OccupiedByObstacle(wx, wy) || OccupiedByWhirlwind(wx, wy) || (wx == gFoodX && wy == gFoodY)));
-        if (guard < 1000) gWhirlwinds.push_back({ {wx, wy} });
+        } while (guard < 1000 &&
+            (OccupiedBySnake(wx, wy) ||
+                OccupiedByObstacle(wx, wy) ||
+                OccupiedByWhirlwind(wx, wy) ||
+                (wx == gFoodX && wy == gFoodY)));
+
+        if (guard < 1000) {
+            gWhirlwinds.push_back({ {wx, wy}, gTime, 8.0f });
+        }
     }
 }
+
+bool Game_IsGhost() { return gGhostMode; }
+
+static void UpdateWhirlwinds() {
+    gWhirlwinds.erase(
+        std::remove_if(
+            gWhirlwinds.begin(),
+            gWhirlwinds.end(),
+            [&](const Whirlwind& w) {
+                return (gTime - w.spawnTime) >= w.lifeTime;
+            }
+        ),
+        gWhirlwinds.end()
+    );
+}
+
 static void PlaceFood() {
     // Nếu đang Auto Pilot thì không tạo mồi nữa, giấu mồi đi
     if (gAutoPilot) { gFoodX = -10; gFoodY = -10; return; }
@@ -191,6 +231,17 @@ void Game_OnKeyPressed(int key) {
 void Game_Update(float dt) {
     if (gPaused || gOver) return;
     gTime += dt;
+    UpdateWhirlwinds();
+
+
+    if (gGhostMode) {
+        gGhostRemaining -= dt;
+        if (gGhostRemaining <= 0.f) {
+            gGhostMode = false;
+            gGhostRemaining = 0.f;
+        }
+    }
+
     gAcc += dt;
 
     while (gAcc >= gMoveInterval) {
@@ -233,19 +284,50 @@ void Game_Update(float dt) {
         }
         else {
             // == LOGIC CHƠI BÌNH THƯỜNG ==
-            if (hitWall || hitObs || hitSelf) { gOver = true; gEvents |= (1 << 1); break; }
+            /*if (hitWall || hitObs || hitSelf) { gOver = true; gEvents |= (1 << 1); break; }*/
 
-            // Whirlwind logic
-            if (OccupiedByWhirlwind(next.x, next.y)) {
-                RemoveWhirlwindAt(next.x, next.y);
-                int oldDx = gDirX, oldDy = gDirY;
-                gDirX = -oldDy; gDirY = oldDx; // Xoay 90 độ
-                gPendX = gDirX; gPendY = gDirY;
-                next = { head.x + gDirX, head.y + gDirY };
-                if (next.x < 0 || next.x >= BOARD_W || next.y < 0 || next.y >= BOARD_H) {
-                    gOver = true; gEvents |= (1 << 1); break;
+            if (!gGhostMode) {
+                // Chết bình thường
+                if (hitWall || hitObs || hitSelf) {
+                    gOver = true;
+                    gEvents |= (1 << 1);
+                    break;
                 }
             }
+            else {
+                // Ghost mode → bỏ qua va chạm
+                hitWall = hitObs = hitSelf = false;
+            }
+
+            // Duỗi từng whirlwind trong danh sách
+            for (auto& w : gWhirlwinds) {
+                // Kiểm tra xem đầu rắn sẽ đi vào whirlwind này không
+                if (w.pos.x == next.x && w.pos.y == next.y) {
+                    // Kích hoạt ghost mode
+                    gGhostMode = true;
+                    gGhostRemaining = 3.0f;
+
+                    // Xoá whirlwind vừa chạm
+                    RemoveWhirlwindAt(w.pos.x, w.pos.y);
+
+                    // Chỉ kích hoạt 1 whirlwind mỗi bước
+                    break;
+                }
+            }
+
+            // Whirlwind logic
+            //if (OccupiedByWhirlwind(next.x, next.y)) {
+            //    RemoveWhirlwindAt(next.x, next.y);
+            //    int oldDx = gDirX, oldDy = gDirY;
+            //    gDirX = -oldDy; gDirY = oldDx; // Xoay 90 độ
+            //    gPendX = gDirX; gPendY = gDirY;
+            //    next = { head.x + gDirX, head.y + gDirY };
+            //    if (next.x < 0 || next.x >= BOARD_W || next.y < 0 || next.y >= BOARD_H) {
+            //        gOver = true; gEvents |= (1 << 1); break;
+            //    }
+            //}
+
+     
         }
 
         gSnake.push_front(next);
