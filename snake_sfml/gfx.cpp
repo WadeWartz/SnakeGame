@@ -569,10 +569,54 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
         window.draw(sPortal);
     }
 
-    // --- VẼ RẮN VỚI SỐ ---
-    std::string fullStr = MSSV_FULL; // Lấy chuỗi từ config.h
+    //// --- VẼ RẮN VỚI SỐ ---
+    //std::string fullStr = MSSV_FULL; // Lấy chuỗi từ config.h
+    //std::size_t len = Game_SnakeLen();
+    //bool first = true;
+
+    //for (std::size_t i = 0; i < len; ++i) {
+    //    Cell c = Game_SnakeSeg(i);
+    //    auto p = CellToPx(c.x, c.y);
+
+    //    sf::Color col = SkinColorFor(i, len, first);
+
+    //    if (first) {
+    //        gHeadRect.setFillColor(col);
+    //        gHeadRect.setPosition(p.x + 1, p.y + 1);
+    //        window.draw(gHeadRect);
+    //        first = false;
+    //    }
+    //    else {
+    //        gBodyRect.setFillColor(col);
+    //        gBodyRect.setPosition(p.x + 1, p.y + 1);
+    //        window.draw(gBodyRect);
+    //    }
+
+    //    // --- VẼ SỐ LÊN THÂN ---
+    //    // Vẽ ký tự tương ứng từ chuỗi MSSV_FULL
+    //    if (i < fullStr.size()) {
+    //        char digit = fullStr[i];
+
+    //        gSeg.setString(std::string(1, digit));
+    //        gSeg.setCharacterSize(TILE - 8);
+    //        gSeg.setFillColor(sf::Color::White);
+    //        if (i == 0) gSeg.setFillColor(sf::Color::Yellow); // Đầu rắn màu vàng
+
+    //        sf::FloatRect textRect = gSeg.getLocalBounds();
+    //        gSeg.setOrigin(textRect.left + textRect.width / 2.0f,
+    //            textRect.top + textRect.height / 2.0f);
+    //        gSeg.setPosition(p.x + TILE / 2.0f, p.y + TILE / 2.0f);
+
+    //        window.draw(gSeg);
+    //    }
+    //}
+
+    // --- VẼ RẮN VỚI HIỆU ỨNG GHOST ---
+    std::string fullStr = MSSV_FULL;
     std::size_t len = Game_SnakeLen();
     bool first = true;
+
+    bool isGhost = Game_IsGhost();        // <--- TRẠNG THÁI GHOST MODE
 
     for (std::size_t i = 0; i < len; ++i) {
         Cell c = Game_SnakeSeg(i);
@@ -580,36 +624,78 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
 
         sf::Color col = SkinColorFor(i, len, first);
 
-        if (first) {
-            gHeadRect.setFillColor(col);
-            gHeadRect.setPosition(p.x + 1, p.y + 1);
-            window.draw(gHeadRect);
-            first = false;
+        sf::RectangleShape* rect = first ? &gHeadRect : &gBodyRect;
+        rect->setFillColor(col);
+        rect->setPosition(p.x + 1, p.y + 1);
+
+        // ================================================================
+        //                      ✨ GHOST MODE EFFECT ✨
+        // ================================================================
+        if (isGhost) {
+            // Các lớp glow
+            for (int g = 0; g < 2; g++) {
+                sf::RectangleShape glow = *rect;
+
+                float scale = 1.15f + g * 0.12f;
+                glow.setSize(sf::Vector2f(TILE * scale, TILE * scale));
+                glow.setPosition(
+                    p.x + 1 - (TILE * (scale - 1.f) / 2.f),
+                    p.y + 1 - (TILE * (scale - 1.f) / 2.f)
+                );
+
+                glow.setFillColor(sf::Color(120, 220, 255, 60 - g * 20)); // xanh sáng mờ
+                window.draw(glow);
+            }
+
+            // Bản thân rắn mờ đi
+            sf::RectangleShape fade = *rect;
+            fade.setFillColor(sf::Color(col.r, col.g, col.b, 140));  // alpha = 140
+            window.draw(fade);
         }
         else {
-            gBodyRect.setFillColor(col);
-            gBodyRect.setPosition(p.x + 1, p.y + 1);
-            window.draw(gBodyRect);
+            // Vẽ bình thường
+            window.draw(*rect);
         }
 
-        // --- VẼ SỐ LÊN THÂN ---
-        // Vẽ ký tự tương ứng từ chuỗi MSSV_FULL
+        first = false;
+
+        // ================================================================
+        //                   VẼ SỐ LÊN ĐẦU / THÂN RẮN
+        // ================================================================
         if (i < fullStr.size()) {
             char digit = fullStr[i];
 
             gSeg.setString(std::string(1, digit));
             gSeg.setCharacterSize(TILE - 8);
-            gSeg.setFillColor(sf::Color::White);
-            if (i == 0) gSeg.setFillColor(sf::Color::Yellow); // Đầu rắn màu vàng
+            gSeg.setFillColor(i == 0 ? sf::Color::Yellow : sf::Color::White);
 
             sf::FloatRect textRect = gSeg.getLocalBounds();
-            gSeg.setOrigin(textRect.left + textRect.width / 2.0f,
-                textRect.top + textRect.height / 2.0f);
-            gSeg.setPosition(p.x + TILE / 2.0f, p.y + TILE / 2.0f);
+            gSeg.setOrigin(textRect.left + textRect.width / 2.f,
+                textRect.top + textRect.height / 2.f);
 
-            window.draw(gSeg);
+            gSeg.setPosition(p.x + TILE / 2.f, p.y + TILE / 2.f);
+
+            // Nếu ghost mode → chữ cũng mờ + phát sáng nhẹ
+            if (isGhost) {
+                // Glow quanh chữ
+                for (int g = 0; g < 2; g++) {
+                    sf::Text glow = gSeg;
+                    glow.setFillColor(sf::Color(150, 220, 255, 70 - g * 20));
+                    glow.setScale(1.1f + g * 0.1f, 1.1f + g * 0.1f);
+                    window.draw(glow);
+                }
+
+                // Chữ mờ đi
+                sf::Text fade = gSeg;
+                fade.setFillColor(sf::Color(255, 255, 255, 160));
+                window.draw(fade);
+            }
+            else {
+                window.draw(gSeg);
+            }
         }
     }
+
 
     gHud.setString(
         "Score: " + std::to_string(Game_Score()) +
@@ -912,6 +998,8 @@ void Gfx_DrawMainMenu(sf::RenderWindow& window, int previewSkin)
     cap.setOutlineColor(sf::Color(10, 10, 10));
     cap.setPosition(cx - cap.getLocalBounds().width / 2.f, cy + 32.f);
     window.draw(cap);
+
+
 }
 
 void Gfx_DrawOptions(sf::RenderWindow& window, int previewSkin)
