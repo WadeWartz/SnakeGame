@@ -41,6 +41,11 @@ struct Whirlwind {
     float lifeTime;   // thời gian tồn tại (3 giây)
 };
 
+//Thêm bộ đếm thời gian cho việc tái sinh Whirlwind
+static float gWhirlwindRespawnTimer = 0.f;   // Thời gian chờ để spawn lại
+static const float WHIRL_DESPAWN_TIME = 3.0f; // tồn tại 3 giây
+static const float WHIRL_RESPAWN_DELAY = 2.0f; // xuất hiện lại sau 2 giây
+
 static std::vector<Whirlwind> gWhirlwinds;
 static float gTime = 0.f;
 static bool gGhostMode = false;
@@ -95,8 +100,8 @@ static void SpawnWhirlwinds(int count) {
     for (int k = 0; k < count; ++k) {
         int wx, wy, guard = 0;
         do {
-            wx = RandInt(0, BOARD_W - 1);
-            wy = RandInt(0, BOARD_H - 1);
+            wx = RandInt(BORDER, BOARD_W - BORDER - 1);
+            wy = RandInt(BORDER, BOARD_H - BORDER - 1);
             guard++;
         } while (guard < 1000 &&
             (OccupiedBySnake(wx, wy) ||
@@ -105,25 +110,49 @@ static void SpawnWhirlwinds(int count) {
                 (wx == gFoodX && wy == gFoodY)));
 
         if (guard < 1000) {
-            gWhirlwinds.push_back({ {wx, wy}, gTime, 8.0f });
+            gWhirlwinds.push_back({ {wx, wy}, gTime, WHIRL_DESPAWN_TIME });
         }
     }
 }
 
+
+
 bool Game_IsGhost() { return gGhostMode; }
 
-static void UpdateWhirlwinds() {
+static void UpdateWhirlwinds(float dt)
+{
+    // --- 1) Xóa whirlwind đã quá 3 giây ---
+    bool anyRemoved = false;
+
     gWhirlwinds.erase(
         std::remove_if(
             gWhirlwinds.begin(),
             gWhirlwinds.end(),
             [&](const Whirlwind& w) {
-                return (gTime - w.spawnTime) >= w.lifeTime;
+                bool dead = (gTime - w.spawnTime) >= w.lifeTime;
+                if (dead) anyRemoved = true;
+                return dead;
             }
         ),
         gWhirlwinds.end()
     );
+
+    // --- 2) Nếu tất cả whirlwind đã biến mất, bắt đầu đếm 2 giây ---
+    if (gWhirlwinds.empty()) {
+        gWhirlwindRespawnTimer += dt;
+
+        // --- 3) Spawn lại sau 2 giây ---
+        if (gWhirlwindRespawnTimer >= WHIRL_RESPAWN_DELAY) {
+            SpawnWhirlwinds(1);      // bạn có thể tăng số lượng tùy ý
+            gWhirlwindRespawnTimer = 0.f;
+        }
+    }
+    else {
+        // Nếu vẫn đang có whirlwind → reset timer để tránh spawn trùng
+        gWhirlwindRespawnTimer = 0.f;
+    }
 }
+
 
 static void PlaceFood() {
     // Nếu đang Auto Pilot thì không tạo mồi nữa, giấu mồi đi
@@ -231,7 +260,7 @@ void Game_OnKeyPressed(int key) {
 void Game_Update(float dt) {
     if (gPaused || gOver) return;
     gTime += dt;
-    UpdateWhirlwinds();
+    UpdateWhirlwinds(dt);
 
 
     if (gGhostMode) {
@@ -297,6 +326,15 @@ void Game_Update(float dt) {
             else {
                 // Ghost mode → bỏ qua va chạm
                 hitWall = hitObs = hitSelf = false;
+
+                // **VẪN GIỚI HẠN TƯỜNG**
+                if (hitWall) {
+                    // Nếu rắn chạm tường → đặt vị trí vào trong map
+                    if (next.x < 0) next.x = 0;
+                    else if (next.x >= BOARD_W) next.x = BOARD_W - 1;
+                    if (next.y < 0) next.y = 0;
+                    else if (next.y >= BOARD_H) next.y = BOARD_H - 1;
+                }
             }
 
             // Duỗi từng whirlwind trong danh sách
