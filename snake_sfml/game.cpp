@@ -96,6 +96,7 @@ static void SpawnObstacles(int count) {
         if (guard < 1000) gObstacles.push_back({ ox,oy });
     }
 }
+
 static void SpawnWhirlwinds(int count) {
     for (int k = 0; k < count; ++k) {
         int wx, wy, guard = 0;
@@ -192,8 +193,80 @@ static void LoadLevel(int level) {
     ResetSnake();
     gMoveInterval = 0.12f;
 
-    if (gLevel == 2) { SpawnObstacles(5); gMoveInterval = 0.11f; }
-    else if (gLevel == 3) { SpawnObstacles(8); SpawnWhirlwinds(4); gMoveInterval = 0.10f; }
+    if (level == 1) {
+        // Level 1: map trống, không obstacle
+    }
+
+    else if (level == 2) {
+        // Level 2: Một dãy tường ngang ở phía trên, cách xa vị trí spawn của rắn
+        // Rắn spawn ở BOARD_H / 2, nên ta đặt tường ở hàng 3 để không kẹp người chơi
+        int y1 = BOARD_H / 2 - 4;   // dải trên
+        int y2 = BOARD_H / 2 + 4;   // dải dưới
+
+        int gap1 = BOARD_W / 3;
+        int gap2 = BOARD_W - BOARD_W / 3;
+
+        // Dải trên
+        for (int x = 4; x < BOARD_W - 4; x++) {
+            if (x == gap1 || x == gap2) continue;
+            gObstacles.push_back({ x, y1 });
+        }
+
+        // Dải dưới
+        for (int x = 4; x < BOARD_W - 4; x++) {
+            if (x == gap1 || x == gap2) continue;
+            gObstacles.push_back({ x, y2 });
+        }
+
+        gMoveInterval = 0.11f;
+    }
+
+    else if (level == 3) {
+        // Level 3: Một dãy tường dọc, cũng có 1 lỗ
+        int mainX = BOARD_W / 2;
+        int gap = BOARD_H / 2;
+
+        for (int y = 2; y < BOARD_H - 2; y++) {
+            if (y == gap) continue;
+            gObstacles.push_back({ mainX, y });
+        }
+
+        // --- Hai bên: obstacle theo cụm 3–4 viên ---
+
+        // Vị trí hai cột phụ
+        int leftX = mainX - 8;
+        int rightX = mainX + 7;
+
+        // Tạo các cụm theo hàng dọc
+        // Cụm 1: 3 viên
+        for (int y = 4; y <= 6; y++) {
+            gObstacles.push_back({ leftX, y });
+            gObstacles.push_back({ rightX, y });
+        }
+
+        // Cụm 2: 4 viên
+        for (int y = 10; y <= 13; y++) {
+            gObstacles.push_back({ leftX, y });
+            gObstacles.push_back({ rightX, y });
+        }
+
+        // Cụm 3: 3 viên
+        for (int y = 17; y <= 19; y++) {
+            gObstacles.push_back({ leftX, y });
+            gObstacles.push_back({ rightX, y });
+        }
+
+        // Cụm 4: 4 viên
+        for (int y = 23; y <= 26; y++) {
+            if (y >= BOARD_H - 3) break;
+            gObstacles.push_back({ leftX, y });
+            gObstacles.push_back({ rightX, y });
+        }
+
+        SpawnWhirlwinds(4);
+        gMoveInterval = 0.10f;
+    }
+    
 
     PlaceFood();
 }
@@ -338,15 +411,21 @@ void Game_Update(float dt) {
             }
 
             // Duỗi từng whirlwind trong danh sách
-            for (auto& w : gWhirlwinds) {
-                // Kiểm tra xem đầu rắn sẽ đi vào whirlwind này không
-                if (w.pos.x == next.x && w.pos.y == next.y) {
+            // NOTE: don't erase from gWhirlwinds while iterating with a range-for (UB).
+            // Find index first, then erase safely.
+            std::size_t whirlIndex = (std::size_t)-1;
+            for (std::size_t i = 0; i < gWhirlwinds.size(); ++i) {
+                const Cell& wpos = gWhirlwinds[i].pos;
+                // Check both the next cell (where the head will move) and the current head cell.
+                // Some drawing/layout setups make the visible whirl appear offset relative to
+                // logical board coordinates; checking both reduces missed collisions.
+                if ((wpos.x == next.x && wpos.y == next.y) || (wpos.x == head.x && wpos.y == head.y)) {
                     // Kích hoạt ghost mode
                     gGhostMode = true;
                     gGhostRemaining = 3.0f;
 
                     // Xoá whirlwind vừa chạm
-                    RemoveWhirlwindAt(w.pos.x, w.pos.y);
+                    RemoveWhirlwindAt(gWhirlwinds[i].pos.x, gWhirlwinds[i].pos.y);
 
                     // Chỉ kích hoạt 1 whirlwind mỗi bước
                     break;

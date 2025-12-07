@@ -114,21 +114,22 @@ static void DrawTornado(sf::RenderWindow& win, int gx, int gy, float t)
 {
     sf::Sprite sp(texWhirlwind);
 
-    // Animation xoay (cho đẹp)
+    // Animation rotation
     sp.setRotation(std::fmod(t * 120.f, 360.f));
 
-    // Scale chuẩn theo TILE
+    // Scale to TILE
     float sx = float(TILE) / texWhirlwind.getSize().x;
     float sy = float(TILE) / texWhirlwind.getSize().y;
     sp.setScale(sx, sy);
 
-    // Đặt tâm xoay ở giữa
+    // Center origin
     sp.setOrigin(texWhirlwind.getSize().x * 0.5f,
-        texWhirlwind.getSize().y * 0.5f);
+                 texWhirlwind.getSize().y * 0.5f);
 
-    // Đưa sprite vào đúng ô lưới
-    sp.setPosition(gx * TILE + TILE * 0.5f,
-        gy * TILE + TILE * 0.5f);
+    // Use the same Cell -> pixel mapping as other draw code so logical
+    // coordinates match visible sprite (fixes the offset when BORDER != 0)
+    sf::Vector2f p = CellToPx(gx, gy);
+    sp.setPosition(p.x + TILE * 0.5f, p.y + TILE * 0.5f);
 
     win.draw(sp);
 }

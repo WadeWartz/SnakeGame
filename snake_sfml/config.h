@@ -13,5 +13,5 @@ constexpr int OBSTACLE_PER_LV = 2;    // mỗi level sinh thêm 2 chướng ng�
 
 
 // Chuoi MSSV
-#define MSSV_FULL "241270812412717224127260241273392412748424127081"
+#define MSSV_FULL "2412708124"
 struct Cell { int x, y; };
