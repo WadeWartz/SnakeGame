@@ -1,18 +1,59 @@
-# Chặn thư mục rác của Visual Studio
+# C# ==== Visual Studio workspace ====
 .vs/
 .vscode/
 
-# Chặn thư mục biên dịch (nặng và không cần thiết)
+# ==== Build output (Debug/Release) ====
 Debug/
 Release/
 x64/
 x86/
-/ipch/
+ipch/
+out/
 
-# Chặn các file hệ thống tạm
-*.db
-*.ipch
-*.opendb
-*.sdf
-*.user
+# ==== Visual Studio cache & temp ====
 *.suo
+*.user
+*.userosscache
+*.sdf
+*.cachefile
+*.opensdf
+*.db
+*.opendb
+*.pdb
+*.ilk
+*.tlog
+*.log
+*.lastbuildstate
+*.VC.db
+*.VC.opendb
+
+# ==== Compiled objects ====
+*.obj
+*.o
+*.gch
+*.pch
+
+# ==== Executables ====
+*.exe
+*.dll
+*.lib
+*.so
+*.a
+
+# ==== CMake cache (if used) ====
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# ==== SFML build garbage ====
+*.res
+*.manifest
+
+# ==== Crash dumps ====
+*.dmp
+
+# ==== Backup / temp files ====
+*~
+*.tmp
+*.bak
