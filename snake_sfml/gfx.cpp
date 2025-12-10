@@ -14,6 +14,11 @@ static sf::RectangleShape gHeadRect, gBodyRect;
 static sf::CircleShape    gFoodShape;
 static sf::RectangleShape gObsRect;
 
+// TorriGate
+static sf::Texture texTorii;
+static sf::Sprite sprTorii;
+static bool toriiLoaded = false;
+
 //whirlwind
 static sf::Texture texWhirlwind;
 static bool texWhirlwindLoaded = false;
@@ -325,6 +330,13 @@ bool Gfx_Init(sf::RenderWindow& window) {
     if (!gFont.loadFromFile("assets/fonts/RobotoMono-Regular.ttf")) {
         std::cerr << "Failed to load font assets/fonts/RobotoMono-Regular.ttf\n";
     }
+    if (texTorii.loadFromFile("assets/Torii.png")) {
+        sprTorii.setTexture(texTorii);
+        toriiLoaded = true;
+    }
+    else {
+        std::cout << "Failed to load assets/Torii.png\n";
+    }
 
     if (gMainMenuBgTexture.loadFromFile("assets/UI/MainScreen.png")) {
         gMainMenuBgSprite.setTexture(gMainMenuBgTexture);
@@ -568,6 +580,29 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
         }
 
         window.draw(sPortal);
+        if (Game_IsAutoPilot() && toriiLoaded)
+        {
+            Cell portal = Game_PortalPos();
+            sf::Vector2f p = CellToPx(portal.x, portal.y);
+
+            // Đưa p thành TÂM ô
+            sf::Vector2f center = p;
+            center.x += TILE * 0.5f;
+            center.y += TILE * 0.5f;
+
+            sprTorii.setScale(0.20f, 0.20f);
+
+            sprTorii.setOrigin(
+                sprTorii.getTexture()->getSize().x / 2.0f,
+                sprTorii.getTexture()->getSize().y
+            );
+
+            // đặt Torii sao cho portal nằm chính giữa cổng
+            sprTorii.setPosition(center.x, center.y + TILE * 0.70f);
+
+            window.draw(sprTorii);
+        }
+
     }
 
     //// --- VẼ RẮN VỚI SỐ ---

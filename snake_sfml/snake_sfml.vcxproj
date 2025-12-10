@@ -160,6 +160,9 @@ rem (không cần copy dll nếu bạn đã có dòng xcopy dll từ SFML\bin tr
     <ClInclude Include="game.h" />
     <ClInclude Include="gfx.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\Torii.png" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
