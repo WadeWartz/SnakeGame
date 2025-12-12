@@ -1,64 +1,66 @@
-#include <SFML/Graphics.hpp>
-#include "game.h"
+﻿#include "game.h"
 #include "config.h"
 #include <deque>
 #include <vector>
 #include <random>
 #include <algorithm>
 #include <fstream>
-#include <iostream>
-
-// ===== CẤU HÌNH LOGIC =====
-const int FOOD_TO_PASS = 10;
+#include <sstream> // Cần thêm thư viện này để xử lý chuỗi
 
 // ===== RNG =====
 static std::mt19937& Rng() { static std::mt19937 g{ std::random_device{}() }; return g; }
 static int RandInt(int lo, int hi) { std::uniform_int_distribution<int> d(lo, hi); return d(Rng()); }
 
-// ===== Trạng thái =====
-static std::deque<Cell> gSnake;
+// ===== Trạng thái Game =====
+static std::deque<Cell> gSnake;      // [0] = đầu
 static int  gDirX = +1, gDirY = 0;
 static int  gPendX = +1, gPendY = 0;
 static int  gFoodX = 20, gFoodY = 10;
 static int  gScore = 0, gHighScore = 0;
 static bool gPaused = false, gOver = false;
 
-static float gMoveInterval = 0.12f;
+static float gMoveInterval = 0.12f;     // giây/bước
 static const float gMinInterval = 0.06f;
 static float gAcc = 0.f;
-static int gEvents = 0;
 
-// Level & Obstacle
-static int gLevel = 1;
-static int gEatenInLevel = 0;
+static int gEvents = 0; // bit0=EAT, bit1=DIE
+
+// Level & obstacle
+static int gLevel = 1, gEatenInLevel = 0;
 static std::vector<Cell> gObstacles;
 
-// Whirlwind
-//struct Whirlwind { Cell pos; };
-struct Whirlwind {
-    Cell pos;
-    float spawnTime;  // thời điểm spawn
-    float lifeTime;   // thời gian tồn tại (3 giây)
-};
+// Wrap
+static bool gWrapOn = WRAP_DEFAULT;
 
-//Thêm bộ đếm thời gian cho việc tái sinh Whirlwind
-static float gWhirlwindRespawnTimer = 0.f;   // Thời gian chờ để spawn lại
-static const float WHIRL_DESPAWN_TIME = 3.0f; // tồn tại 3 giây
-static const float WHIRL_RESPAWN_DELAY = 2.0f; // xuất hiện lại sau 2 giây
-
+struct Whirlwind { Cell pos; float spawnTime; float lifeTime; };
 static std::vector<Whirlwind> gWhirlwinds;
 static float gTime = 0.f;
 static bool gGhostMode = false;
 static float gGhostRemaining = 0.f;
+static float gWhirlwindRespawnTimer = 0.f;
+static const float WHIRL_DESPAWN_TIME = 3.0f;
+static const float WHIRL_RESPAWN_DELAY = 2.0f;
+// ===== AUTO PILOT & CỔNG QUA MÀN =====
+static bool gAutoPilot = false;
 
-// ===== AUTO PILOT & PORTAL (MỚI) =====
-static bool gAutoPilot = false;       // Đang trong chế độ tự đi?
-static Cell gPortalPos = { -1, -1 };  // Vị trí cổng
-
-// High score path
+// Vị trí cổng Torii để qua màn (từng level sẽ set lại)
+static Cell gLevelGatePos{ -1, -1 };
+// High score file (Global Score - giữ nguyên hoặc bỏ tùy bạn)
 static const char* SAVE_PATH = "save_highscore.txt";
 
-// ====== HÀM TIỆN ÍCH ======
+// =========================================================
+// ===== QUẢN LÝ PROFILE (BIẾN TOÀN CỤC MỚI) =====
+// =========================================================
+static std::string gCurrentProfileName = "default"; // Tên người chơi hiện tại
+static const char* PROFILE_LIST_FILE = "profiles.txt"; // File chứa danh sách tên người chơi
+
+// Hàm nội bộ: Tạo tên file save dựa trên tên người chơi
+// Ví dụ: tên là "Dava" -> file "save_Dava.txt"
+static std::string GetSaveFileName(const std::string& name) {
+    return "save_" + name + ".txt";
+}
+
+// ====== UTIL (TRÊN Game_Update) ======
 static bool OccupiedBySnake(int x, int y) {
     for (const auto& c : gSnake) if (c.x == x && c.y == y) return true;
     return false;
@@ -68,31 +70,21 @@ static bool OccupiedByObstacle(int x, int y) {
     return false;
 }
 static bool OccupiedByWhirlwind(int x, int y) {
-    for (const auto& w : gWhirlwinds) if (w.pos.x == x && w.pos.y == y) return true;
+    for (const auto& w : gWhirlwinds) {
+        if (w.pos.x == x && w.pos.y == y) return true;
+    }
     return false;
 }
-//static void RemoveWhirlwindAt(int x, int y) {
-//    for (auto it = gWhirlwinds.begin(); it != gWhirlwinds.end(); ++it) {
-//        if (it->pos.x == x && it->pos.y == y) { gWhirlwinds.erase(it); return; }
-//    }
-//}
-
-static void RemoveWhirlwindAt(int x, int y) {
-    gWhirlwinds.erase(
-        std::remove_if(gWhirlwinds.begin(), gWhirlwinds.end(),
-            [&](auto& w) { return w.pos.x == x && w.pos.y == y; }),
-        gWhirlwinds.end()
-    );
-}
-
-// Spawn các vật thể
 static void SpawnObstacles(int count) {
     for (int k = 0; k < count; ++k) {
         int ox, oy, guard = 0;
         do {
-            ox = RandInt(0, BOARD_W - 1); oy = RandInt(0, BOARD_H - 1);
+            ox = RandInt(0, BOARD_W - 1);
+            oy = RandInt(0, BOARD_H - 1);
             guard++;
-        } while (guard < 1000 && (OccupiedBySnake(ox, oy) || OccupiedByObstacle(ox, oy) || (ox == gFoodX && oy == gFoodY)));
+        } while (guard < 1000 && (OccupiedBySnake(ox, oy) ||
+            OccupiedByObstacle(ox, oy) ||
+            (ox == gFoodX && oy == gFoodY)));
         if (guard < 1000) gObstacles.push_back({ ox,oy });
     }
 }
@@ -115,228 +107,379 @@ static void SpawnWhirlwinds(int count) {
         }
     }
 }
+// Xoá whirlwind tại vị trí (x, y)
+static void RemoveWhirlwindAt(int x, int y)
+{
+    auto it = std::remove_if(
+        gWhirlwinds.begin(),
+        gWhirlwinds.end(),
+        [&](const Whirlwind& w) {
+            return (w.pos.x == x && w.pos.y == y);
+        }
+    );
 
+    gWhirlwinds.erase(it, gWhirlwinds.end());
+}
 
-
-bool Game_IsGhost() { return gGhostMode; }
+static void PlaceFood() {
+    while (true) {
+        gFoodX = RandInt(0, BOARD_W - 1);
+        gFoodY = RandInt(0, BOARD_H - 1);
+        if (OccupiedBySnake(gFoodX, gFoodY)) continue;
+        if (OccupiedByObstacle(gFoodX, gFoodY)) continue;
+        if (OccupiedByWhirlwind(gFoodX, gFoodY)) continue; // whirlwinds still considered
+        break;
+    }
+}
+static void ResetSnake() {
+    gSnake.clear();
+    int sx = BOARD_W / 2, sy = BOARD_H / 2;
+    for (int i = 0; i < 5; ++i) gSnake.push_back({ sx - i, sy }); // head = front = (sx,sy)
+    gDirX = +1; gDirY = 0; gPendX = +1; gPendY = 0;
+}
 
 static void UpdateWhirlwinds(float dt)
 {
-    // --- 1) Xóa whirlwind đã quá 3 giây ---
-    bool anyRemoved = false;
-
+    // 1) Xóa whirlwind đã quá thời gian sống
     gWhirlwinds.erase(
         std::remove_if(
             gWhirlwinds.begin(),
             gWhirlwinds.end(),
             [&](const Whirlwind& w) {
-                bool dead = (gTime - w.spawnTime) >= w.lifeTime;
-                if (dead) anyRemoved = true;
-                return dead;
+                return (gTime - w.spawnTime) >= w.lifeTime;
             }
         ),
         gWhirlwinds.end()
     );
 
-    // --- 2) Nếu tất cả whirlwind đã biến mất, bắt đầu đếm 2 giây ---
+    // 2) Nếu không còn whirlwind nào → đếm thời gian chờ spawn lại
     if (gWhirlwinds.empty()) {
         gWhirlwindRespawnTimer += dt;
 
-        // --- 3) Spawn lại sau 2 giây ---
+        // 3) Sau khi chờ đủ → spawn lại
         if (gWhirlwindRespawnTimer >= WHIRL_RESPAWN_DELAY) {
-            SpawnWhirlwinds(1);      // bạn có thể tăng số lượng tùy ý
+            SpawnWhirlwinds(1);      // số lượng bạn có thể chỉnh
             gWhirlwindRespawnTimer = 0.f;
         }
     }
     else {
-        // Nếu vẫn đang có whirlwind → reset timer để tránh spawn trùng
+        // Nếu vẫn còn whirlwind → reset timer
         gWhirlwindRespawnTimer = 0.f;
     }
 }
 
-
-static void PlaceFood() {
-    // Nếu đang Auto Pilot thì không tạo mồi nữa, giấu mồi đi
-    if (gAutoPilot) { gFoodX = -10; gFoodY = -10; return; }
-
-    int guard = 0;
-    while (guard++ < 2000) {
-        gFoodX = RandInt(0, BOARD_W - 1); gFoodY = RandInt(0, BOARD_H - 1);
-        if (OccupiedBySnake(gFoodX, gFoodY)) continue;
-        if (OccupiedByObstacle(gFoodX, gFoodY)) continue;
-        if (OccupiedByWhirlwind(gFoodX, gFoodY)) continue;
-        break;
-    }
-}
-
-// ===== LOGIC CHÍNH =====
-static void ResetSnake() {
-    gSnake.clear();
-    int sx = BOARD_W / 2, sy = BOARD_H / 2;
-
-    // Độ dài ban đầu là 8
-    for (int i = 0; i < 8; ++i) {
-        gSnake.push_back({ sx - i, sy });
-    }
-
-    gDirX = +1; gDirY = 0; gPendX = +1; gPendY = 0;
-}
-
-static void LoadLevel(int level) {
-    gLevel = level;
-    gEatenInLevel = 0;
-    gAutoPilot = false;     // Tắt chế độ tự lái
-    gPortalPos = { -1, -1 }; // Giấu cổng đi
-
+// Xây obstacle cố định cho từng level (3 màn chính)
+static void BuildLevelObstacles(int level)
+{
     gObstacles.clear();
-    gWhirlwinds.clear();
-    ResetSnake();
-    gMoveInterval = 0.12f;
 
-    if (level == 1) {
-        // Level 1: map trống, không obstacle
+    // Biên an toàn, tránh sát mép
+    int left = 2;
+    int right = BOARD_W - 3;
+    int top = 2;
+    int bottom = BOARD_H - 3;
+
+    // Level 1: không có chướng ngại (màn luyện cơ bản)
+    if (level <= 1) {
+        return;
     }
 
-    else if (level == 2) {
-        // Level 2: Một dãy tường ngang ở phía trên, cách xa vị trí spawn của rắn
-        // Rắn spawn ở BOARD_H / 2, nên ta đặt tường ở hàng 3 để không kẹp người chơi
-        int y1 = BOARD_H / 2 - 4;   // dải trên
-        int y2 = BOARD_H / 2 + 4;   // dải dưới
+    // Level 2: Hai bức tường ngang trên và dưới, chừa lỗ ở giữa
+    if (level == 2) {
+        int y1 = BOARD_H / 3;
+        int y2 = BOARD_H * 2 / 3;
+        int mid = BOARD_W / 2;
+        int gap = 3; // độ rộng lỗ trống
 
-        int gap1 = BOARD_W / 3;
-        int gap2 = BOARD_W - BOARD_W / 3;
+        for (int x = left; x <= right; ++x) {
+            if (std::abs(x - mid) <= gap) continue; // chừa lỗ ở giữa
 
-        // Dải trên
-        for (int x = 4; x < BOARD_W - 4; x++) {
-            if (x == gap1 || x == gap2) continue;
-            gObstacles.push_back({ x, y1 });
+            if (!OccupiedBySnake(x, y1) && !(x == gFoodX && y1 == gFoodY))
+                gObstacles.push_back({ x, y1 });
+
+            if (!OccupiedBySnake(x, y2) && !(x == gFoodX && y2 == gFoodY))
+                gObstacles.push_back({ x, y2 });
         }
-
-        // Dải dưới
-        for (int x = 4; x < BOARD_W - 4; x++) {
-            if (x == gap1 || x == gap2) continue;
-            gObstacles.push_back({ x, y2 });
-        }
-
-        gMoveInterval = 0.11f;
+        return;
     }
 
-    else if (level == 3) {
-        // Level 3: Một dãy tường dọc, cũng có 1 lỗ
-        int mainX = BOARD_W / 2;
-        int gap = BOARD_H / 2;
+    // Level >= 3: multiple vertical columns (adjusted to match image)
+    if (level >= 3) {
+        int midX = BOARD_W / 2;
+        int centerY = BOARD_H / 2;
 
-        for (int y = 2; y < BOARD_H - 2; y++) {
-            if (y == gap) continue;
-            gObstacles.push_back({ mainX, y });
+        // Column X positions (left -> left-center -> center -> right-center -> right)
+        std::vector<int> cols;
+        cols.push_back(std::clamp(left + 4, 0, BOARD_W - 1));
+        cols.push_back(std::clamp(midX - 4, 0, BOARD_W - 1));
+        cols.push_back(std::clamp(midX, 0, BOARD_W - 1));
+        cols.push_back(std::clamp(midX + 4, 0, BOARD_W - 1));
+        cols.push_back(std::clamp(right - 4, 0, BOARD_W - 1));
+
+        for (int cx : cols) {
+            // Make each column tall but leave a short gap around center for navigation
+            int gapRadius = (cx == midX) ? 2 : 1; // larger gap in center column
+            for (int y = top; y <= bottom; ++y) {
+                if (std::abs(y - centerY) <= gapRadius) continue; // central gap
+                if (!OccupiedBySnake(cx, y) && !(cx == gFoodX && y == gFoodY))
+                    gObstacles.push_back({ cx, y });
+            }
         }
 
-        // --- Hai bên: obstacle theo cụm 3–4 viên ---
-
-        // Vị trí hai cột phụ
-        int leftX = mainX - 8;
-        int rightX = mainX + 7;
-
-        // Tạo các cụm theo hàng dọc
-        // Cụm 1: 3 viên
-        for (int y = 4; y <= 6; y++) {
-            gObstacles.push_back({ leftX, y });
-            gObstacles.push_back({ rightX, y });
+        // Add two short vertical stacks (upper-left and lower-right) like in the photo
+        int shortLx = std::clamp(left + 1, 0, BOARD_W - 1);
+        for (int y = top + 2; y < top + 6 && y <= bottom; ++y) {
+            if (!OccupiedBySnake(shortLx, y) && !(shortLx == gFoodX && y == gFoodY))
+                gObstacles.push_back({ shortLx, y });
         }
 
-        // Cụm 2: 4 viên
-        for (int y = 10; y <= 13; y++) {
-            gObstacles.push_back({ leftX, y });
-            gObstacles.push_back({ rightX, y });
+        int shortRx = std::clamp(right - 1, 0, BOARD_W - 1);
+        for (int y = bottom - 5; y <= bottom - 2 && y >= top; ++y) {
+            if (!OccupiedBySnake(shortRx, y) && !(shortRx == gFoodX && y == gFoodY))
+                gObstacles.push_back({ shortRx, y });
         }
 
-        // Cụm 3: 3 viên
-        for (int y = 17; y <= 19; y++) {
-            gObstacles.push_back({ leftX, y });
-            gObstacles.push_back({ rightX, y });
-        }
-
-        // Cụm 4: 4 viên
-        for (int y = 23; y <= 26; y++) {
-            if (y >= BOARD_H - 3) break;
-            gObstacles.push_back({ leftX, y });
-            gObstacles.push_back({ rightX, y });
-        }
-
-        SpawnWhirlwinds(4);
-        gMoveInterval = 0.10f;
+        return;
     }
-    
-
-    PlaceFood();
 }
 
-// ===== XỬ LÝ AUTO PILOT (TỰ TÌM ĐƯỜNG) =====
-static void UpdateAutoPilot() {
+// Bắt đầu chế độ AutoPilot: rắn tự chạy tới cổng Torii
+static void StartAutoPilotToGate()
+{
+    gAutoPilot = true;
+
+    // Cổng nằm gần mép phải, giữa màn (mỗi level dùng chung vị trí này)
+    gLevelGatePos.x = BOARD_W - 3;
+    gLevelGatePos.y = BOARD_H / 2;
+
+    // Ẩn mồi, để rắn chỉ tập trung chạy tới cổng
+    gFoodX = -10;
+    gFoodY = -10;
+
+    // Bật ghost mode "vô hạn" trong lúc auto (để không chết khi đụng)
+    gGhostMode = true;
+    gGhostRemaining = 9999.f;
+}
+// Khi rắn chạm cổng Torii -> qua màn mới
+static void StartNextLevel()
+{
+    // Tăng level, quay vòng 1..3
+    gLevel++;
+    if (gLevel > 3) gLevel = 1;
+
+    gAutoPilot = false;
+    gGhostMode = false;
+    gGhostRemaining = 0.f;
+    gEatenInLevel = 0;
+
+    // Reset trạng thái game
+    ResetSnake();
+    PlaceFood();
+
+    // Xây obstacle theo level mới
+    BuildLevelObstacles(gLevel);
+
+    // Reset whirlwind
+    gTime = 0.f;
+    gWhirlwinds.clear();
+    gWhirlwindRespawnTimer = 0.f;
+    SpawnWhirlwinds(1);
+}
+// Điều chỉnh gPendX, gPendY để rắn tự đi về cổng
+static void UpdateAutoPilot()
+{
+    if (!gAutoPilot || gSnake.empty()) return;
+
     Cell head = gSnake.front();
-    int tx = gPortalPos.x;
-    int ty = gPortalPos.y;
+    int tx = gLevelGatePos.x;
+    int ty = gLevelGatePos.y;
 
-    // Logic đơn giản: Ưu tiên đi theo trục nào xa hơn
-    // và đảm bảo không quay ngược đầu 180 độ
+    auto sgn = [](int v) { return (v > 0) ? 1 : ((v < 0) ? -1 : 0); };
 
-    int dx = tx - head.x;
-    int dy = ty - head.y;
+    // helper: apply wrap if enabled
+    auto applyWrap = [&](int x, int y) -> std::pair<int, int> {
+        if (!gWrapOn) return { x, y };
+        if (x < 0) x = BOARD_W - 1;
+        if (x >= BOARD_W) x = 0;
+        if (y < 0) y = BOARD_H - 1;
+        if (y >= BOARD_H) y = 0;
+        return { x, y };
+        };
 
-    int moveX = (dx > 0) ? 1 : ((dx < 0) ? -1 : 0);
-    int moveY = (dy > 0) ? 1 : ((dy < 0) ? -1 : 0);
-
-    // Thử đi theo trục X trước nếu khoảng cách X lớn hơn
-    bool tryX = (std::abs(dx) >= std::abs(dy));
-
-    // Hàm kiểm tra xem hướng đi có hợp lệ (không quay đầu 180 độ)
-    auto isValidDir = [&](int mx, int my) {
-        if (mx == 0 && my == 0) return false;
-        if (mx == -gDirX && my == -gDirY) return false; // Không quay đầu
+    // helper: test if a cell would be safe to step into (allow stepping onto gate)
+    auto isSafe = [&](int nx, int ny)->bool {
+        // gate is always allowed
+        if (nx == tx && ny == ty) return true;
+        auto p = applyWrap(nx, ny);
+        nx = p.first; ny = p.second;
+        // out of bounds when wrap is off
+        if (!gWrapOn) {
+            if (nx < 0 || nx >= BOARD_W || ny < 0 || ny >= BOARD_H) return false;
+        }
+        if (OccupiedByObstacle(nx, ny)) return false;
+        if (OccupiedBySnake(nx, ny)) return false;
+        // whirlwinds/food don't block autopilot movement
         return true;
         };
 
-    int nextX = gDirX, nextY = gDirY; // Mặc định giữ hướng cũ
+    // target delta
+    int dx = tx - head.x;
+    int dy = ty - head.y;
 
-    if (tryX && moveX != 0 && isValidDir(moveX, 0)) {
-        nextX = moveX; nextY = 0;
-    }
-    else if (moveY != 0 && isValidDir(0, moveY)) {
-        nextX = 0; nextY = moveY;
-    }
-    else if (moveX != 0 && isValidDir(moveX, 0)) {
-        // Nếu trục Y không đi được thì thử lại trục X
-        nextX = moveX; nextY = 0;
+    // possible moves (4 directions)
+    std::vector<std::pair<int, int>> moves = {
+        { sgn(dx), 0 },
+        { 0, sgn(dy) },
+        { -sgn(dx), 0 },
+        { 0, -sgn(dy) }
+    };
+
+    // Ensure we evaluate all 4 unique directions
+    std::vector<std::pair<int, int>> allDirs = { {1,0},{-1,0},{0,1},{0,-1} };
+
+    // Exclude reverse (can't go directly backwards)
+    std::pair<int, int> reverseDir = { -gDirX, -gDirY };
+
+    // Candidate selection: prefer moves that reduce Manhattan distance to target and are safe
+    bool found = false;
+    int bestDx = gDirX, bestDy = gDirY;
+    int bestScore = std::numeric_limits<int>::max();
+
+    for (auto mv : allDirs) {
+        if (mv == reverseDir) continue;
+        int nx = head.x + mv.first;
+        int ny = head.y + mv.second;
+        if (!isSafe(nx, ny)) continue;
+
+        // compute Manhattan distance after move (use wrapped coordinates)
+        auto p = applyWrap(nx, ny);
+        int dist = std::abs(tx - p.first) + std::abs(ty - p.second);
+
+        if (dist < bestScore) {
+            bestScore = dist;
+            bestDx = mv.first;
+            bestDy = mv.second;
+            found = true;
+        }
     }
 
-    // Gán hướng đi mới
-    gPendX = nextX; gPendY = nextY;
+    if (found) {
+        gPendX = bestDx;
+        gPendY = bestDy;
+    }
+    else {
+        // no safe move found: keep current direction (so we at least don't reverse)
+        gPendX = gDirX;
+        gPendY = gDirY;
+    }
 }
 
-// ===== API =====
-void Game_Init() { gScore = 0; gPaused = false; gOver = false; gAcc = 0.f; gEvents = 0; LoadLevel(1); }
-void Game_Reset() { Game_Init(); }
+// ===== High score =====
+void Game_LoadHighScore() {
+    std::ifstream fin(SAVE_PATH);
+    if (!fin) { gHighScore = 0; return; }
+    fin >> gHighScore;
+    if (!fin) gHighScore = 0;
+}
+void Game_SaveHighScore() {
+    static int last = -1;
+    if (gHighScore == last) return;
+    std::ofstream fout(SAVE_PATH, std::ios::trunc);
+    if (fout) { fout << gHighScore; last = gHighScore; }
+}
+int Game_HighScore() { return gHighScore; }
+
+// ===== API vòng đời & input =====
+void Game_Init() {
+    ResetSnake();
+    PlaceFood();
+
+    gScore = 0;
+    gPaused = false;
+    gOver = false;
+
+    gMoveInterval = 0.12f;
+    gAcc = 0.f;
+    gEvents = 0;
+
+    gLevel = 1;
+    gEatenInLevel = 0;
+
+    gWrapOn = WRAP_DEFAULT;
+
+    // Xây obstacle theo level 1 (không có chướng ngại)
+    BuildLevelObstacles(gLevel);
+
+    // Whirlwind & Ghost
+    gTime = 0.f;
+    gWhirlwinds.clear();
+    gGhostMode = false;
+    gGhostRemaining = 0.f;
+    gWhirlwindRespawnTimer = 0.f;
+    SpawnWhirlwinds(1);
+
+    // AutoPilot & Gate
+    gAutoPilot = false;
+    gLevelGatePos.x = BOARD_W - 3;
+    gLevelGatePos.y = BOARD_H / 2;
+}
+
+
+void Game_Reset() {
+    ResetSnake();
+    PlaceFood();
+
+    gScore = 0;
+    gPaused = false;
+    gOver = false;
+
+    gMoveInterval = 0.12f;
+    gAcc = 0.f;
+    gEvents = 0;
+
+    gLevel = 1;
+    gEatenInLevel = 0;
+
+    gWrapOn = WRAP_DEFAULT;
+
+    BuildLevelObstacles(gLevel);
+
+    gTime = 0.f;
+    gWhirlwinds.clear();
+    gGhostMode = false;
+    gGhostRemaining = 0.f;
+    gWhirlwindRespawnTimer = 0.f;
+    SpawnWhirlwinds(1);
+
+    gAutoPilot = false;
+    gLevelGatePos.x = BOARD_W - 3;
+    gLevelGatePos.y = BOARD_H / 2;
+}
+
+
 void Game_TogglePause() { if (!gOver) gPaused = !gPaused; }
 void Game_SetPaused(bool v) { if (!gOver) gPaused = v; }
 void Game_RestartIfOver() { if (gOver) Game_Reset(); }
 
 void Game_OnKeyPressed(int key) {
-    if (gAutoPilot) return; // Đang tự đi thì không nhận phím
-
-    const int K_W = 22, K_UP = 73, K_S = 18, K_DOWN = 74, K_A = 0, K_LEFT = 71, K_D = 3, K_RIGHT = 72;
-    if ((key == K_W || key == K_UP) && (gDirY != +1)) { gPendX = 0; gPendY = -1; }
-    if ((key == K_S || key == K_DOWN) && (gDirY != -1)) { gPendX = 0; gPendY = +1; }
-    if ((key == K_A || key == K_LEFT) && (gDirX != +1)) { gPendX = -1; gPendY = 0; }
-    if ((key == K_D || key == K_RIGHT) && (gDirX != -1)) { gPendX = +1; gPendY = 0; }
+    if (gAutoPilot) return;  // đang AutoPilot thì bỏ input người chơi
+    // Giá trị enum sf::Keyboard (SFML 2.6.x)
+    const int K_W = 22, K_A = 0, K_S = 18, K_D = 3, K_UP = 73, K_LEFT = 71, K_DOWN = 74, K_RIGHT = 72;
+    if (key == K_W || key == K_UP) { if (gDirY != +1 || gSnake.size() <= 1) { gPendX = 0;  gPendY = -1; } }
+    if (key == K_S || key == K_DOWN) { if (gDirY != -1 || gSnake.size() <= 1) { gPendX = 0;  gPendY = +1; } }
+    if (key == K_A || key == K_LEFT) { if (gDirX != +1 || gSnake.size() <= 1) { gPendX = -1; gPendY = 0; } }
+    if (key == K_D || key == K_RIGHT) { if (gDirX != -1 || gSnake.size() <= 1) { gPendX = +1; gPendY = 0; } }
 }
 
 void Game_Update(float dt) {
     if (gPaused || gOver) return;
+
+    // Cập nhật thời gian & whirlwind
     gTime += dt;
     UpdateWhirlwinds(dt);
 
-
-    if (gGhostMode) {
+    // Đếm ngược Ghost Mode (trừ khi đang AutoPilot)
+    if (gGhostMode && !gAutoPilot) {
         gGhostRemaining -= dt;
         if (gGhostRemaining <= 0.f) {
             gGhostMode = false;
@@ -345,165 +488,289 @@ void Game_Update(float dt) {
     }
 
     gAcc += dt;
-
     while (gAcc >= gMoveInterval) {
         gAcc -= gMoveInterval;
 
-        // Nếu đang chế độ tự lái, tính toán hướng đi
+        // Nếu AutoPilot thì chọn hướng tự động
         if (gAutoPilot) {
             UpdateAutoPilot();
         }
 
-        gDirX = gPendX; gDirY = gPendY;
+        // Áp hướng pending
+        gDirX = gPendX;
+        gDirY = gPendY;
+
         Cell head = gSnake.front();
         Cell next{ head.x + gDirX, head.y + gDirY };
 
-        // --- XỬ LÝ VA CHẠM ---
-        bool hitWall = (next.x < 0 || next.x >= BOARD_W || next.y < 0 || next.y >= BOARD_H);
-        bool hitObs = OccupiedByObstacle(next.x, next.y);
-        bool hitSelf = false;
-        for (const auto& c : gSnake) if (c.x == next.x && c.y == next.y) hitSelf = true;
+        bool hitWall = false;
 
-        if (gAutoPilot) {
-            // == LOGIC KHI TỰ ĐI ==
-            // Rắn thành "siêu nhân": đi xuyên tường (wrap) hoặc xuyên chướng ngại vật để về đích cho đẹp
-            if (hitObs || hitSelf) { /* Bỏ qua va chạm khi đang cutscene */ }
-
-            // Nếu đụng tường thì wrap (đi vòng sang bên kia) để tìm đường tiếp
-            if (next.x < 0) next.x = BOARD_W - 1;
-            else if (next.x >= BOARD_W) next.x = 0;
-            else if (next.y < 0) next.y = BOARD_H - 1;
-            else if (next.y >= BOARD_H) next.y = 0;
-
-            // KIỂM TRA VỀ ĐÍCH (CỔNG)
-            if (next.x == gPortalPos.x && next.y == gPortalPos.y) {
-                // Qua màn!
-                gLevel++;
-                if (gLevel > 3) gLevel = 1;
-                LoadLevel(gLevel);
-                return; // Kết thúc update frame này
-            }
+        // WRAP
+        if (gWrapOn) {
+            if (next.x < 0)         next.x = BOARD_W - 1;
+            if (next.x >= BOARD_W) next.x = 0;
+            if (next.y < 0)         next.y = BOARD_H - 1;
+            if (next.y >= BOARD_H) next.y = 0;
         }
         else {
-            // == LOGIC CHƠI BÌNH THƯỜNG ==
-            /*if (hitWall || hitObs || hitSelf) { gOver = true; gEvents |= (1 << 1); break; }*/
-
-            if (!gGhostMode) {
-                // Chết bình thường
-                if (hitWall || hitObs || hitSelf) {
-                    gOver = true;
-                    gEvents |= (1 << 1);
-                    break;
-                }
+            if (next.x < 0 || next.x >= BOARD_W ||
+                next.y < 0 || next.y >= BOARD_H) {
+                hitWall = true;
             }
-            else {
-                // Ghost mode → bỏ qua va chạm
-                hitWall = hitObs = hitSelf = false;
+        }
 
-                // **VẪN GIỚI HẠN TƯỜNG**
-                if (hitWall) {
-                    // Nếu rắn chạm tường → đặt vị trí vào trong map
-                    if (next.x < 0) next.x = 0;
-                    else if (next.x >= BOARD_W) next.x = BOARD_W - 1;
-                    if (next.y < 0) next.y = 0;
-                    else if (next.y >= BOARD_H) next.y = BOARD_H - 1;
-                }
+        // Nếu đang AutoPilot & bước tiếp theo là cổng -> qua màn luôn
+        if (gAutoPilot &&
+            next.x == gLevelGatePos.x &&
+            next.y == gLevelGatePos.y) {
+
+            gSnake.push_front(next);
+            if (!gSnake.empty()) gSnake.pop_back();
+
+            StartNextLevel();
+            return; // kết thúc frame, sang level mới
+        }
+
+        bool hitObs = OccupiedByObstacle(next.x, next.y);
+        bool hitSelf = false;
+        for (const auto& c : gSnake) {
+            if (c.x == next.x && c.y == next.y) {
+                hitSelf = true;
+                break;
             }
+        }
 
-            // Duỗi từng whirlwind trong danh sách
-            // NOTE: don't erase from gWhirlwinds while iterating with a range-for (UB).
-            // Find index first, then erase safely.
-            std::size_t whirlIndex = (std::size_t)-1;
+        // Kiểm tra va vào Whirlwind -> bật Ghost Mode
+        if (!gGhostMode) {
             for (std::size_t i = 0; i < gWhirlwinds.size(); ++i) {
                 const Cell& wpos = gWhirlwinds[i].pos;
-                // Check both the next cell (where the head will move) and the current head cell.
-                // Some drawing/layout setups make the visible whirl appear offset relative to
-                // logical board coordinates; checking both reduces missed collisions.
-                if ((wpos.x == next.x && wpos.y == next.y) || (wpos.x == head.x && wpos.y == head.y)) {
-                    // Kích hoạt ghost mode
+                if ((wpos.x == next.x && wpos.y == next.y) ||
+                    (wpos.x == head.x && wpos.y == head.y)) {
+
                     gGhostMode = true;
                     gGhostRemaining = 3.0f;
 
-                    // Xoá whirlwind vừa chạm
-                    RemoveWhirlwindAt(gWhirlwinds[i].pos.x, gWhirlwinds[i].pos.y);
+                    RemoveWhirlwindAt(wpos.x, wpos.y);
 
-                    // Chỉ kích hoạt 1 whirlwind mỗi bước
+                    // Bỏ qua va chạm trong bước này
+                    hitWall = hitObs = hitSelf = false;
                     break;
                 }
             }
-
-            // Whirlwind logic
-            //if (OccupiedByWhirlwind(next.x, next.y)) {
-            //    RemoveWhirlwindAt(next.x, next.y);
-            //    int oldDx = gDirX, oldDy = gDirY;
-            //    gDirX = -oldDy; gDirY = oldDx; // Xoay 90 độ
-            //    gPendX = gDirX; gPendY = gDirY;
-            //    next = { head.x + gDirX, head.y + gDirY };
-            //    if (next.x < 0 || next.x >= BOARD_W || next.y < 0 || next.y >= BOARD_H) {
-            //        gOver = true; gEvents |= (1 << 1); break;
-            //    }
-            //}
-
-     
         }
+
+        // Xử lý chết / sống
+        if (!gGhostMode) {
+            if (hitWall || hitObs || hitSelf) {
+                gOver = true;
+                gEvents |= (1 << 1); // DIE
+                break;
+            }
+        }
+        else {
+            // Ghost mode: bỏ qua obstacle & tự va,
+            // nhưng vẫn giữ rắn trong map nếu không wrap
+            if (!gWrapOn && hitWall) {
+                if (next.x < 0)              next.x = 0;
+                else if (next.x >= BOARD_W)  next.x = BOARD_W - 1;
+                if (next.y < 0)              next.y = 0;
+                else if (next.y >= BOARD_H)  next.y = BOARD_H - 1;
+            }
+        }
+
+        if (gOver) break;
 
         gSnake.push_front(next);
 
-        // Ăn mồi (chỉ khi không phải Auto Pilot)
-        if (!gAutoPilot && next.x == gFoodX && next.y == gFoodY) {
-            gScore++;
-            gEvents |= (1 << 0); // Sound EAT
+        // Ăn mồi?
+        if (next.x == gFoodX && next.y == gFoodY) {
+            gScore += 1;
             if (gScore > gHighScore) gHighScore = gScore;
+            gMoveInterval = std::max(gMinInterval, gMoveInterval - 0.006f);
+            PlaceFood();
 
-            // Lấy độ dài chuỗi mục tiêu
-            std::string targetStr = MSSV_FULL;
-
-            // KIỂM TRA QUA MÀN: Nếu độ dài rắn >= độ dài chuỗi số
-            if (gSnake.size() >= targetStr.length()) {
-                // KÍCH HOẠT CHẾ ĐỘ TỰ ĐI (AUTO PILOT) QUA CỔNG
-                gAutoPilot = true;
-                gPortalPos = { BOARD_W - 1, BOARD_H / 2 };
-                gFoodX = -10; gFoodY = -10; // Giấu mồi
-
-                // Yêu cầu: "Giảm tốc độ rắn xuống 1 tí" khi hoàn thành
-                // Tăng interval lên -> rắn đi chậm lại
-                gMoveInterval += 0.03f;
-            }
-            else {
-                PlaceFood();
-                // Bình thường thì ăn xong rắn chạy nhanh hơn 1 chút
-                gMoveInterval = std::max(gMinInterval, gMoveInterval - 0.002f);
+            gEatenInLevel++;
+            if (gEatenInLevel >= LEVEL_STEP && !gAutoPilot) {
+                // Đã đạt số mồi để qua màn -> bật AutoPilot
+                gEatenInLevel = 0;
+                StartAutoPilotToGate();
             }
 
-            // LƯU Ý QUAN TRỌNG: 
-            // Không gọi gSnake.pop_back() ở nhánh else bên dưới
-            // vì ta muốn rắn dài ra (thêm số) sau khi ăn.
+            gEvents |= (1 << 0); // EAT
+            // không pop đuôi
         }
         else {
-            // Nếu không ăn mồi thì xóa đuôi để giữ nguyên độ dài
             gSnake.pop_back();
         }
     }
 }
 
-// Getters & Load/Save (giữ nguyên)
-void Game_LoadHighScore() { std::ifstream fin(SAVE_PATH); if (fin) fin >> gHighScore; }
-void Game_SaveHighScore() { static int l = -1; if (gHighScore != l) { std::ofstream f(SAVE_PATH); if (f) f << gHighScore; l = gHighScore; } }
-int Game_HighScore() { return gHighScore; }
+// ===== Getters =====
 int Game_Score() { return gScore; }
 bool Game_Paused() { return gPaused; }
 bool Game_Over() { return gOver; }
 float Game_MoveInterval() { return gMoveInterval; }
 int Game_Level() { return gLevel; }
+
 std::size_t Game_SnakeLen() { return gSnake.size(); }
 Cell Game_SnakeSeg(std::size_t i) { return gSnake[i]; }
 Cell Game_Food() { return { gFoodX,gFoodY }; }
+
 std::size_t Game_ObstacleCount() { return gObstacles.size(); }
 Cell Game_Obstacle(std::size_t i) { return gObstacles[i]; }
+
+bool Game_IsGhost() { return gGhostMode; }
+
 std::size_t Game_WhirlwindCount() { return gWhirlwinds.size(); }
-Cell Game_Whirlwind(std::size_t i) { return gWhirlwinds[i].pos; }
+Cell        Game_Whirlwind(std::size_t i) { return gWhirlwinds[i].pos; }
+
+bool Game_IsAutoPilot() { return gAutoPilot; }
+Cell Game_PortalPos() { return gLevelGatePos; }
+
 int Game_ConsumeEvents() { int e = gEvents; gEvents = 0; return e; }
 
-// Getter cho cổng (để bên gfx vẽ)
-bool Game_IsAutoPilot() { return gAutoPilot; }
-Cell Game_PortalPos() { return gPortalPos; }
+// Wrap getters/toggles
+void Game_ToggleWrap() { if (!gOver) gWrapOn = !gWrapOn; }
+bool Game_WrapOn() { return gWrapOn; }
+
+// ===================== SAVE / LOAD GAME =====================
+
+// Lưu game dựa trên tên người chơi (Profile) hiện tại
+bool Game_SaveGame()
+{
+    std::string filename = GetSaveFileName(gCurrentProfileName);
+    std::ofstream out(filename);
+    if (!out) return false;
+
+    // 1. Thông tin chung
+    out << gScore << ' '
+        << gHighScore << ' '
+        << gLevel << ' '
+        << gEatenInLevel << ' '
+        << gMoveInterval << ' '
+        << gDirX << ' ' << gDirY << ' '
+        << gPendX << ' ' << gPendY << ' '
+        << (int)gWrapOn << '\n';
+
+    // 2. Food
+    out << gFoodX << ' ' << gFoodY << '\n';
+
+    // 3. Thân rắn
+    out << gSnake.size() << '\n';
+    for (const auto& c : gSnake) {
+        out << c.x << ' ' << c.y << '\n';
+    }
+
+    // 4. Obstacles
+    out << gObstacles.size() << '\n';
+    for (const auto& o : gObstacles) {
+        out << o.x << ' ' << o.y << '\n';
+    }
+
+    return true;
+}
+
+// Tải game dựa trên tên người chơi (Profile) hiện tại
+bool Game_LoadGame()
+{
+    std::string filename = GetSaveFileName(gCurrentProfileName);
+    std::ifstream in(filename);
+    if (!in) return false;
+
+    int score, hi, level, eatenLv;
+    float moveInt;
+    int dirX, dirY, pendX, pendY;
+    int wrapOn;
+
+    // 1. Thông tin chung
+    if (!(in >> score >> hi >> level >> eatenLv >> moveInt
+        >> dirX >> dirY >> pendX >> pendY >> wrapOn))
+        return false;
+
+    int foodX, foodY;
+    // 2. Food
+    if (!(in >> foodX >> foodY)) return false;
+
+    // 3. Thân rắn
+    size_t snakeLen;
+    if (!(in >> snakeLen)) return false;
+    std::deque<Cell> snakeTmp;
+    for (size_t i = 0; i < snakeLen; ++i) {
+        Cell c;
+        if (!(in >> c.x >> c.y)) return false;
+        snakeTmp.push_back(c);
+    }
+
+    // 4. Obstacles
+    size_t obsLen;
+    if (!(in >> obsLen)) return false;
+    std::vector<Cell> obsTmp;
+    obsTmp.reserve(obsLen);
+    for (size_t i = 0; i < obsLen; ++i) {
+        Cell o;
+        if (!(in >> o.x >> o.y)) return false;
+        obsTmp.push_back(o);
+    }
+
+    // Assign loaded state
+    gScore = score;
+    gHighScore = hi;
+    gLevel = level;
+    gEatenInLevel = eatenLv;
+    gMoveInterval = moveInt;
+    gDirX = dirX; gDirY = dirY;
+    gPendX = pendX; gPendY = pendY;
+    gWrapOn = (wrapOn != 0);
+    gFoodX = foodX; gFoodY = foodY;
+    gSnake = std::move(snakeTmp);
+    gObstacles = std::move(obsTmp);
+
+    // Reset runtime flags
+    gPaused = false;
+    gOver = false;
+    gAcc = 0.f;
+    gEvents = 0;
+
+    return true;
+}
+
+// =========================================================
+// ===== PROFILE HELPERS =====
+// =========================================================
+void Game_SetProfileName(const std::string& name) {
+    gCurrentProfileName = name;
+}
+
+std::string Game_GetProfileName() {
+    return gCurrentProfileName;
+}
+
+std::vector<std::string> Game_GetProfileList() {
+    std::vector<std::string> list;
+    std::ifstream in(PROFILE_LIST_FILE);
+    std::string line;
+    while (std::getline(in, line)) {
+        if (!line.empty()) list.push_back(line);
+    }
+    return list;
+}
+
+bool Game_CreateProfile(const std::string& name) {
+    if (name.empty()) return false;
+    auto list = Game_GetProfileList();
+    for (const auto& s : list) if (s == name) return false;
+    std::ofstream out(PROFILE_LIST_FILE, std::ios::app);
+    out << name << "\n";
+    return true;
+}
+
+std::string Game_GetProfileInfo(const std::string& name) {
+    std::string filename = GetSaveFileName(name);
+    std::ifstream in(filename);
+    if (!in) return "New Player - No Data";
+    int score, hi, level;
+    if (in >> score >> hi >> level) {
+        return "Level: " + std::to_string(level) + " | Score: " + std::to_string(score);
+    }
+    return "Error reading data";
+}

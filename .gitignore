@@ -5,7 +5,6 @@
 # ==== Build output (Debug/Release) ====
 Debug/
 Release/
-x64/
 x86/
 ipch/
 out/
@@ -34,8 +33,6 @@ out/
 *.pch
 
 # ==== Executables ====
-*.exe
-*.dll
 *.lib
 *.so
 *.a
