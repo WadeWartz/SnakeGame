@@ -596,6 +596,13 @@ void Game_Update(float dt) {
                 StartAutoPilotToGate();
             }
 
+            // start autopilot if snake reached the full MSSV length (MSSV_FULL)
+            int targetLen = (int)(sizeof(MSSV_FULL) - 1); // number of characters in MSSV_FULL
+            if ((int)gSnake.size() >= targetLen && !gAutoPilot) {
+                // If you want to prefer MSSV-based trigger over LEVEL_STEP, this will activate autopilot.
+                StartAutoPilotToGate();
+            }
+
             gEvents |= (1 << 0); // EAT
             // không pop đuôi
         }
