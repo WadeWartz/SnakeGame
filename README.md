@@ -18,6 +18,7 @@ No code editing or configuration is required for grading.
 The game uses relative paths, so the assets folder must be placed
 in the same directory as the executable.
 
+===================================================================
 
 FOLDER STRUCTURE
 
