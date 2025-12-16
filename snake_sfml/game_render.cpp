@@ -1,4 +1,4 @@
-﻿#include "game_render.h"
+#include "game_render.h"
 #include "config.h"
 #include "game.h"
 #include "ui_gfx.h"           
@@ -76,24 +76,29 @@ static sf::Color LerpColor(const sf::Color& a, const sf::Color& b, float t) {
 }
 static sf::Color SkinColorFor(std::size_t i, std::size_t len, bool head) {
     switch (gSkin) {
-    case 0: return head ? sf::Color(0, 180, 120) : sf::Color(0, 140, 90); // Classic
-    case 1: { // Neon
-        if (head) return sf::Color(0, 255, 255);
-        float t = (std::sin((float)i * 0.5f) + 1.f) * 0.5f;
-        return LerpColor(sf::Color(0, 100, 200), sf::Color(0, 200, 255), t);
-    }
-    case 2: { // Rainbow
-        float h = 360.f * ((float)i / (float)(len > 0 ? len : 1));
-        return FromHSV(h, 0.8f, 1.f);
-    }
-    case 3: { // Stripes
-        return (i % 2 == 0) ? sf::Color(255, 200, 50) : sf::Color(50, 50, 50);
-    }
-    case 4: { // Magma
-        float t = (float)i / (float)(len > 0 ? len : 1);
-        return LerpColor(sf::Color(255, 50, 0), sf::Color(50, 0, 0), t);
-    }
-    case 5: return head ? sf::Color(255, 215, 0) : sf::Color(180, 150, 20); // Gold
+    case 0: 
+        return head ? sf::Color(0, 180, 120) 
+                        : sf::Color(0, 140, 90); // Classic
+
+    case 1: 
+        return head ? sf::Color(80, 235, 130)
+                    : sf::Color(60, 210, 110);
+    
+    case 2: 
+        return head ? sf::Color(0, 150, 220)
+                    : sf::Color(0, 120, 190);
+
+    case 3: 
+        return head ? sf::Color(220, 80, 80)
+                    : sf::Color(190, 60, 60);
+    
+    case 4: 
+        return head ? sf::Color(210, 160, 60)
+                    : sf::Color(180, 130, 50);
+
+    case 5: 
+        return head ? sf::Color(180, 100, 200)
+                    : sf::Color(150, 80, 170); // Gold
     default: return sf::Color::White;
     }
 }
