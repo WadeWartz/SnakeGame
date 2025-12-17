@@ -15,7 +15,7 @@ constexpr bool WRAP_DEFAULT = false;
 
 // --- CẤU HÌNH ĐỘ DÀI ---
 // Độ dài ban đầu của rắn là 5
-constexpr int INITIAL_SNAKE_LEN = 5;
+constexpr int INITIAL_SNAKE_LEN = 6;
 
 // Đích đến (Mã số sinh viên chuẩn): Chỉ cần đạt độ dài này là qua màn
 #define MSSV_FULL "24127081"
