@@ -1,5 +1,4 @@
 ﻿#include "ui_gfx.h"
-#include "game_render.h" // <- ensure enum MenuHit is defined here
 #include "config.h"
 #include "game.h"
 #include <SFML/Graphics.hpp>
@@ -1224,7 +1223,7 @@ MenuHit Gfx_MenuHitTest(const sf::Vector2f& m) {
     if (rP_Resume.contains(m)) return MH_Resume;
     if (rP_Restart.contains(m)) return MH_Restart;
     if (rP_Save.contains(m)) return MH_Save;
-    if (rP_Load.contains(m)) return MH_Load;
+    // if (rP_Load.contains(m)) return MH_Load; // Tạm bỏ Load trong pause vì không vẽ nút Load
     if (rP_Exit.contains(m)) return MH_Exit;
     return MH_None;
 }

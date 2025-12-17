@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <string>
 #include <vector>
+
 // === Vòng đời & trạng thái ===
 void Game_Init();
 void Game_Reset();
@@ -10,18 +11,17 @@ void Game_TogglePause();
 void Game_SetPaused(bool v);
 void Game_RestartIfOver();
 
-// === Input hướng (nhận mã phím của SFML dưới dạng int) ===
+// === Input ===
 void Game_OnKeyPressed(int sfmlKeyCode);
 
-// === Cập nhật theo thời gian (dt = giây) ===
+// === Update ===
 void Game_Update(float dt);
 
-// Save / Load toàn bộ trạng thái game (vị trí rắn, level, tốc độ, obstacle...)
-bool Game_SaveGame();   // nhấn L
-bool Game_LoadGame();   // nhấn T
+// Save / Load
+bool Game_SaveGame();
+bool Game_LoadGame();
 
-
-// === Getters dùng cho GFX ===
+// === Getters ===
 int         Game_Score();
 int         Game_HighScore();
 bool        Game_Paused();
@@ -36,18 +36,18 @@ Cell        Game_Food();
 std::size_t Game_ObstacleCount();
 Cell        Game_Obstacle(std::size_t i);
 
-bool Game_IsGhost();
+bool        Game_IsGhost();
 std::size_t Game_WhirlwindCount();
-Cell Game_Whirlwind(std::size_t i);
+Cell        Game_Whirlwind(std::size_t i);
 
-// Auto Pilot & Gate (Torii)
+// Auto Pilot & Gate
 bool        Game_IsAutoPilot();
 Cell        Game_PortalPos();
+bool        Game_IsExiting(); //Kiểm tra có đang chui cổng không
 
-// Sự kiện 1 lần: bit0=EAT, bit1=DIE
 int         Game_ConsumeEvents();
 
-// === High Score (file) ===
+// === High Score ===
 void Game_LoadHighScore();
 void Game_SaveHighScore();
 
@@ -56,15 +56,8 @@ void Game_ToggleWrap();
 bool Game_WrapOn();
 
 // === PROFILE SYSTEM ===
-void Game_SetProfileName(const std::string& name);
-std::string Game_GetProfileName();
-
-// Tạo profile mới (trả về false nếu tên đã tồn tại)
-bool Game_CreateProfile(const std::string& name);
-
-// Lấy danh sách tất cả profile đã tạo
+void                     Game_SetProfileName(const std::string& name);
+std::string              Game_GetProfileName();
+bool                     Game_CreateProfile(const std::string& name);
 std::vector<std::string> Game_GetProfileList();
-
-// Lấy thông tin tóm tắt của 1 profile để hiển thị (Level, Score)
-// Trả về chuỗi dạng "Level: 5 | Score: 1200"
-std::string Game_GetProfileInfo(const std::string& name);
+std::string              Game_GetProfileInfo(const std::string& name);
