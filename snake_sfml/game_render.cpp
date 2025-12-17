@@ -1,4 +1,4 @@
-﻿#include "game_render.h"
+#include "game_render.h"
 #include "config.h"
 #include "game.h"
 #include "ui_gfx.h"            
