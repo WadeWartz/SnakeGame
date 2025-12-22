@@ -7,7 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
-#include <string> // Cần cho std::string
+#include <string> 
 
 // ===== RNG =====
 static std::mt19937& Rng() { static std::mt19937 g{ std::random_device{}() }; return g; }
@@ -115,7 +115,7 @@ static void PlaceFood() {
     }
 }
 
-// --- KHỞI TẠO RẮN: DÙNG BIẾN INITIAL_SNAKE_LEN (5) ---
+// --- KHỞI TẠO RẮN ---
 static void ResetSnake() {
     gSnake.clear();
     int sx = BOARD_W / 2, sy = BOARD_H / 2;

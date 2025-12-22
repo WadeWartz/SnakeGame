@@ -72,13 +72,32 @@ static sf::Color LerpColor(const sf::Color& a, const sf::Color& b, float t) {
 }
 static sf::Color SkinColorFor(std::size_t i, std::size_t len, bool head) {
     switch (gSkin) {
-    case 0: return head ? sf::Color(0, 180, 120) : sf::Color(0, 140, 90);
-    case 1: { if (head) return sf::Color(0, 255, 255); float t = (std::sin((float)i * 0.5f) + 1.f) * 0.5f; return LerpColor(sf::Color(0, 100, 200), sf::Color(0, 200, 255), t); }
-    case 2: { float h = 360.f * ((float)i / (float)(len > 0 ? len : 1)); return FromHSV(h, 0.8f, 1.f); }
-    case 3: { return (i % 2 == 0) ? sf::Color(255, 200, 50) : sf::Color(50, 50, 50); }
-    case 4: { float t = (float)i / (float)(len > 0 ? len : 1); return LerpColor(sf::Color(255, 50, 0), sf::Color(50, 0, 0), t); }
-    case 5: return head ? sf::Color(255, 215, 0) : sf::Color(180, 150, 20);
-    default: return sf::Color::White;
+    case 0: // 1 - Light Green
+        return head ? sf::Color(80, 220, 120)
+            : sf::Color(60, 200, 100);
+
+    case 1: // 2 - Dark Green
+        return head ? sf::Color(0, 180, 90)
+            : sf::Color(0, 150, 70);
+
+    case 2: // 3 - Blue
+        return head ? sf::Color(0, 150, 220)
+            : sf::Color(0, 120, 190);
+
+    case 3: // 4 - Red
+        return head ? sf::Color(220, 80, 80)
+            : sf::Color(190, 60, 60);
+
+    case 4: // 5 - Orange / Gold
+        return head ? sf::Color(210, 160, 60)
+            : sf::Color(180, 130, 50);
+
+    case 5: // 6 - Purple
+        return head ? sf::Color(180, 100, 200)
+            : sf::Color(150, 80, 170);
+
+    default:
+        return sf::Color::White;
     }
 }
 void Gfx_SetSkin(int id) { gSkin = std::clamp(id, 0, 5); }
@@ -103,7 +122,7 @@ static void DrawTornado(sf::RenderWindow& win, int gx, int gy, float t) {
 bool Gfx_Init(sf::RenderWindow& window) {
     window.setVerticalSyncEnabled(true);
 
-    // Gọi UI Init
+   
     Ui_Init(window);
 
     if (!gFont.loadFromFile("assets/fonts/RobotoMono-Regular.ttf")) std::cerr << "ERR: Font not found!\n";
@@ -211,12 +230,12 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
     for (std::size_t i = 0; i < len; ++i) {
         Cell c = Game_SnakeSeg(i);
 
-        // --- LOGIC QUAN TRỌNG: ẨN ĐỐT RẮN ---
+    
         // Nếu đang chui VÀ tọa độ đốt rắn lớn hơn hoặc bằng cổng -> KHÔNG VẼ
         if (isExiting && c.x >= gateX) {
             continue;
         }
-        // ------------------------------------
+       
 
         auto p = CellToPx(c.x, c.y);
         sf::Color col = SkinColorFor(i, len, first);
@@ -263,7 +282,7 @@ void Gfx_DrawFrame(sf::RenderWindow& window) {
         first = false;
     }
 
-    // 7. VẼ CỔNG SAU CÙNG (ĐỂ ĐÈ LÊN RẮN NẾU CẦN)
+    // 7. VẼ CỔNG SAU CÙNG 
     if (Game_IsAutoPilot()) {
         Cell gate = Game_PortalPos();
         if (gate.x >= 0) {
